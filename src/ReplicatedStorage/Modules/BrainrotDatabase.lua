@@ -1,7 +1,8 @@
 --[[
-    BrainrotDatabase.lua  v2.0
-    Contains all 256 unique Brainrots organized by rarity.
-    Each rarity has 32 Brainrots with unique stats, effects, and designs.
+    BrainrotDatabase.lua  v3.0
+    Contains all 256 unique Brainrots organized by rarity (32 per rarity),
+    plus 5 Boss-drop Brainrots, 5 Secret Brainrots, and 5 Super VIP exclusives.
+    Total: 271 Brainrots.
 ]]
 
 local BrainrotDatabase = {}
@@ -359,12 +360,66 @@ function BrainrotDatabase.GetAllBrainrots()
     return all
 end
 
+------------------------------------------------------------
+-- BOSS DROP BRAINROTS (obtained from world bosses)
+------------------------------------------------------------
+BrainrotDatabase.BossBrainrots = {
+    B("Boss_Giant_Brainrot",  "Brainrot Gigante Boss",   50000,  5.0, "Earthquake",   "Dropado pelo Brainrot Gigante"),
+    B("Boss_Hacker_Cube",     "Cubo Hacker Boss",        120000, 4.0, "MatrixRain",   "Dropado pelo Cubo Hacker"),
+    B("Boss_Golden_Monster",  "Monstro Dourado Boss",    300000, 5.5, "GoldenAura",   "Dropado pelo Monstro Dourado"),
+    B("Boss_Meteor_Titan",    "Tita Meteoro Boss",       800000, 6.0, "MeteorStorm",  "Dropado pelo Tita de Meteoro"),
+    B("Boss_Corrupted_Block", "Lucky Block Corrompido",  2e6,    7.0, "Corruption",   "Dropado pelo Lucky Block Corrompido"),
+}
+
+------------------------------------------------------------
+-- SECRET BRAINROTS (found via hidden buttons/portals)
+------------------------------------------------------------
+BrainrotDatabase.SecretBrainrots = {
+    B("Shadow_Skibidi",  "Skibidi das Sombras",  100000,  3.0, "ShadowCloak",  "Encontrado em segredo escondido"),
+    B("Void_Toilet",     "Toilet do Vazio",      250000,  3.5, "VoidRift",     "Encontrado no portal do vazio"),
+    B("Glitch_Rizz",     "Rizz Glitchado",       500000,  3.0, "Glitch",       "Encontrado em falha dimensional"),
+    B("Phantom_Ohio",    "Ohio Fantasma",         180000,  4.0, "PhantomPhase", "Encontrado na caverna secreta"),
+    B("Hidden_Sigma",    "Sigma Oculto",          750000,  3.5, "Invisibility", "Encontrado pelo botao secreto"),
+}
+
+------------------------------------------------------------
+-- SUPER VIP EXCLUSIVE BRAINROTS
+------------------------------------------------------------
+BrainrotDatabase.SuperVIPBrainrots = {
+    B("Super_Skibidi_King",  "Rei Skibidi Super",   1e6,   5.0, "RoyalAura",    "Exclusivo Super VIP"),
+    B("Rainbow_Sigma",       "Sigma Arco-iris",     1.5e6, 4.5, "RainbowTrail", "Exclusivo Super VIP"),
+    B("Cosmic_Rizz_Lord",   "Lord Rizz Cosmico",   2e6,   5.5, "CosmicPower",  "Exclusivo Super VIP"),
+    B("Ultra_Ohio_Boss",     "Boss Ohio Ultra",     3e6,   6.0, "UltraStrike",  "Exclusivo Super VIP"),
+    B("Void_Brainrot_Prime", "Brainrot Prime Void", 5e6,   7.0, "VoidPrime",    "Exclusivo Super VIP"),
+}
+
 function BrainrotDatabase.GetTotalCount()
     local count = 0
     for _, list in pairs(BrainrotDatabase.Brainrots) do
         count = count + #list
     end
+    count = count + #BrainrotDatabase.BossBrainrots
+    count = count + #BrainrotDatabase.SecretBrainrots
+    count = count + #BrainrotDatabase.SuperVIPBrainrots
     return count
+end
+
+function BrainrotDatabase.FindBrainrot(name)
+    for _, list in pairs(BrainrotDatabase.Brainrots) do
+        for _, b in ipairs(list) do
+            if b.Name == name then return b end
+        end
+    end
+    for _, b in ipairs(BrainrotDatabase.BossBrainrots) do
+        if b.Name == name then return b end
+    end
+    for _, b in ipairs(BrainrotDatabase.SecretBrainrots) do
+        if b.Name == name then return b end
+    end
+    for _, b in ipairs(BrainrotDatabase.SuperVIPBrainrots) do
+        if b.Name == name then return b end
+    end
+    return nil
 end
 
 return BrainrotDatabase

@@ -1,8 +1,8 @@
 --[[
-    DataStoreManager.lua  v2.0
+    DataStoreManager.lua  v3.0
     Handles all player data persistence with DataStore.
     Auto-save, data reconciliation, retry logic.
-    Updated with v2 fields: BaseLevel, BrainrotLevels, LastOnlineTime, etc.
+    v3: Added Gems, Quests, SpinData, OwnedEmotes, Rank, Achievements, etc.
 ]]
 
 local DataStoreService = game:GetService("DataStoreService")
@@ -21,6 +21,7 @@ local DEFAULT_DATA = {
     Speed = 1,
     Luck = 1,
     Rebirths = 0,
+    Gems = 0,
     EquippedWeight = 1,
     Inventory = {},
     EquippedBrainrot = "",
@@ -38,6 +39,15 @@ local DEFAULT_DATA = {
     LastOnlineTime = 0,
     TotalDistance = 0,
     BestDistance = 0,
+    Rank = "Noob",
+    OwnedEmotes = {},
+    Quests = { Daily = {}, Weekly = {}, LastDailyReset = 0, LastWeeklyReset = 0 },
+    SpinData = { LastFreeSpin = 0, TotalSpins = 0 },
+    FoundSecrets = {},
+    Achievements = {},
+    BossKills = 0,
+    EventsCompleted = 0,
+    FreeSpins = 0,
 }
 
 function DataStoreManager.new(config)
@@ -47,7 +57,7 @@ function DataStoreManager.new(config)
     self.SaveInterval = config.AUTO_SAVE_INTERVAL or 60
 
     local success, store = pcall(function()
-        return DataStoreService:GetDataStore("TreineParaChutar_v2")
+        return DataStoreService:GetDataStore("TreineParaChutar_v3")
     end)
 
     if success then

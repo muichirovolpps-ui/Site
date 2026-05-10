@@ -1553,4 +1553,569 @@ if sellerVoiceRemote then
     end)
 end
 
-print("[Client] MainUI v2.0 initialized")
+------------------------------------------------------------
+-- V3: QUEST UI
+------------------------------------------------------------
+local questFrame = Instance.new("Frame")
+questFrame.Name = "QuestPanel"
+questFrame.Size = UDim2.new(0, 350, 0, 450)
+questFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
+questFrame.BackgroundColor3 = Config.UI.PrimaryColor
+questFrame.BorderSizePixel = 0
+questFrame.Visible = false
+questFrame.Parent = screenGui
+
+local questCorner = Instance.new("UICorner")
+questCorner.CornerRadius = UDim.new(0, 12)
+questCorner.Parent = questFrame
+
+local questTitle = createLabel({
+    Name = "Title", Size = UDim2.new(1, 0, 0, 40),
+    Text = "QUESTS", Font = Config.UI.FontTitle,
+    TextColor = Config.UI.AccentColor, Parent = questFrame,
+})
+
+local questScroll = Instance.new("ScrollingFrame")
+questScroll.Size = UDim2.new(1, -20, 1, -50)
+questScroll.Position = UDim2.new(0, 10, 0, 45)
+questScroll.BackgroundTransparency = 1
+questScroll.ScrollBarThickness = 4
+questScroll.Parent = questFrame
+
+local questLayout = Instance.new("UIListLayout")
+questLayout.Padding = UDim.new(0, 6)
+questLayout.Parent = questScroll
+
+local questBtn = createButton({
+    Name = "QuestButton", Size = UDim2.new(0, 60, 0, 35),
+    Position = UDim2.new(0, 150, 0, 0),
+    Text = "Quests", Font = Config.UI.FontAccent,
+    Color = Color3.fromRGB(80, 200, 120), Parent = topButtonsFrame or screenGui,
+})
+questBtn.MouseButton1Click:Connect(function()
+    questFrame.Visible = not questFrame.Visible
+end)
+
+local questCompleteRemote = remotesFolder:FindFirstChild("QuestCompleted")
+if questCompleteRemote then
+    questCompleteRemote.OnClientEvent:Connect(function(data)
+        showRewardNotification("Quest completa: " .. data.Description, Config.UI.SuccessColor)
+    end)
+end
+
+local questRewardRemote = remotesFolder:FindFirstChild("QuestRewardClaimed")
+if questRewardRemote then
+    questRewardRemote.OnClientEvent:Connect(function(data)
+        local rewardText = ""
+        if data.Reward.Money then rewardText = rewardText .. "+$" .. Utils.FormatNumber(data.Reward.Money) .. " " end
+        if data.Reward.Gems then rewardText = rewardText .. "+" .. data.Reward.Gems .. " Gems " end
+        showRewardNotification("Recompensa: " .. rewardText, Color3.fromRGB(200, 150, 255))
+    end)
+end
+
+------------------------------------------------------------
+-- V3: SPIN WHEEL UI
+------------------------------------------------------------
+local spinFrame = Instance.new("Frame")
+spinFrame.Name = "SpinPanel"
+spinFrame.Size = UDim2.new(0, 400, 0, 420)
+spinFrame.Position = UDim2.new(0.5, -200, 0.5, -210)
+spinFrame.BackgroundColor3 = Config.UI.PrimaryColor
+spinFrame.BorderSizePixel = 0
+spinFrame.Visible = false
+spinFrame.Parent = screenGui
+
+local spinCorner = Instance.new("UICorner")
+spinCorner.CornerRadius = UDim.new(0, 12)
+spinCorner.Parent = spinFrame
+
+local spinTitle = createLabel({
+    Name = "Title", Size = UDim2.new(1, 0, 0, 40),
+    Text = "RODA DA SORTE", Font = Config.UI.FontTitle,
+    TextColor = Color3.fromRGB(255, 200, 50), Parent = spinFrame,
+})
+
+local spinWheel = Instance.new("Frame")
+spinWheel.Name = "Wheel"
+spinWheel.Size = UDim2.new(0, 250, 0, 250)
+spinWheel.Position = UDim2.new(0.5, -125, 0, 50)
+spinWheel.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+spinWheel.Parent = spinFrame
+
+local wheelCorner = Instance.new("UICorner")
+wheelCorner.CornerRadius = UDim.new(0.5, 0)
+wheelCorner.Parent = spinWheel
+
+for i, seg in ipairs(Config.SpinWheel.Segments) do
+    local segFrame = Instance.new("Frame")
+    segFrame.Name = "Seg" .. i
+    segFrame.Size = UDim2.new(0.4, 0, 0, 18)
+    local angle = (i - 1) / #Config.SpinWheel.Segments
+    segFrame.Position = UDim2.new(0.5, 0, angle, 0)
+    segFrame.BackgroundColor3 = seg.Color
+    segFrame.BorderSizePixel = 0
+    segFrame.Parent = spinWheel
+
+    local segLabel = Instance.new("TextLabel")
+    segLabel.Size = UDim2.new(1, 0, 1, 0)
+    segLabel.BackgroundTransparency = 1
+    segLabel.Text = seg.Name
+    segLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    segLabel.TextScaled = true
+    segLabel.Font = Enum.Font.Gotham
+    segLabel.Parent = segFrame
+end
+
+local freeSpinBtn = createButton({
+    Name = "FreeSpin", Size = UDim2.new(0, 150, 0, 40),
+    Position = UDim2.new(0.5, -155, 0, 320),
+    Text = "Spin Gratis", Font = Config.UI.FontAccent,
+    Color = Config.UI.SuccessColor, Parent = spinFrame,
+})
+
+local gemSpinBtn = createButton({
+    Name = "GemSpin", Size = UDim2.new(0, 150, 0, 40),
+    Position = UDim2.new(0.5, 5, 0, 320),
+    Text = Config.SpinWheel.GemCost .. " Gems", Font = Config.UI.FontAccent,
+    Color = Color3.fromRGB(200, 100, 255), Parent = spinFrame,
+})
+
+freeSpinBtn.MouseButton1Click:Connect(function()
+    remotesFolder:FindFirstChild("RequestSpin"):FireServer(false)
+end)
+
+gemSpinBtn.MouseButton1Click:Connect(function()
+    remotesFolder:FindFirstChild("RequestSpin"):FireServer(true)
+end)
+
+local spinCloseBtn = createButton({
+    Name = "Close", Size = UDim2.new(0, 30, 0, 30),
+    Position = UDim2.new(1, -35, 0, 5),
+    Text = "X", Font = Config.UI.FontTitle,
+    Color = Config.UI.ErrorColor, Parent = spinFrame,
+})
+spinCloseBtn.MouseButton1Click:Connect(function()
+    spinFrame.Visible = false
+end)
+
+local spinBtn = createButton({
+    Name = "SpinButton", Size = UDim2.new(0, 60, 0, 35),
+    Position = UDim2.new(0, 215, 0, 0),
+    Text = "Spin", Font = Config.UI.FontAccent,
+    Color = Color3.fromRGB(200, 100, 255), Parent = topButtonsFrame or screenGui,
+})
+spinBtn.MouseButton1Click:Connect(function()
+    spinFrame.Visible = not spinFrame.Visible
+end)
+
+local spinResultRemote = remotesFolder:FindFirstChild("SpinResult")
+if spinResultRemote then
+    spinResultRemote.OnClientEvent:Connect(function(data)
+        if data.Error then
+            showRewardNotification(data.Error, Config.UI.ErrorColor)
+        else
+            showRewardNotification("Spin: " .. data.SegmentName .. "!", data.SegmentColor or Config.UI.SuccessColor)
+        end
+    end)
+end
+
+------------------------------------------------------------
+-- V3: EMOTE PANEL
+------------------------------------------------------------
+local emoteFrame = Instance.new("Frame")
+emoteFrame.Name = "EmotePanel"
+emoteFrame.Size = UDim2.new(0, 300, 0, 350)
+emoteFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
+emoteFrame.BackgroundColor3 = Config.UI.PrimaryColor
+emoteFrame.BorderSizePixel = 0
+emoteFrame.Visible = false
+emoteFrame.Parent = screenGui
+
+local emoteCorner = Instance.new("UICorner")
+emoteCorner.CornerRadius = UDim.new(0, 12)
+emoteCorner.Parent = emoteFrame
+
+createLabel({
+    Name = "Title", Size = UDim2.new(1, 0, 0, 40),
+    Text = "EMOTES", Font = Config.UI.FontTitle,
+    TextColor = Color3.fromRGB(255, 150, 200), Parent = emoteFrame,
+})
+
+local emoteGrid = Instance.new("Frame")
+emoteGrid.Size = UDim2.new(1, -20, 1, -50)
+emoteGrid.Position = UDim2.new(0, 10, 0, 45)
+emoteGrid.BackgroundTransparency = 1
+emoteGrid.Parent = emoteFrame
+
+local emoteGridLayout = Instance.new("UIGridLayout")
+emoteGridLayout.CellSize = UDim2.new(0, 80, 0, 60)
+emoteGridLayout.CellPadding = UDim2.new(0, 8, 0, 8)
+emoteGridLayout.Parent = emoteGrid
+
+for _, emote in ipairs(Config.Emotes) do
+    local emoteBtn = Instance.new("TextButton")
+    emoteBtn.Name = emote.Name
+    emoteBtn.Size = UDim2.new(0, 80, 0, 60)
+    emoteBtn.BackgroundColor3 = Config.UI.SecondaryColor
+    emoteBtn.Text = emote.DisplayName
+    emoteBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    emoteBtn.TextScaled = true
+    emoteBtn.Font = Enum.Font.Gotham
+    emoteBtn.Parent = emoteGrid
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = emoteBtn
+
+    emoteBtn.MouseButton1Click:Connect(function()
+        remotesFolder:FindFirstChild("PlayEmote"):FireServer(emote.Name)
+    end)
+end
+
+local emoteBtn = createButton({
+    Name = "EmoteButton", Size = UDim2.new(0, 60, 0, 35),
+    Position = UDim2.new(0, 280, 0, 0),
+    Text = "Emotes", Font = Config.UI.FontAccent,
+    Color = Color3.fromRGB(255, 150, 200), Parent = topButtonsFrame or screenGui,
+})
+emoteBtn.MouseButton1Click:Connect(function()
+    emoteFrame.Visible = not emoteFrame.Visible
+end)
+
+------------------------------------------------------------
+-- V3: RANK DISPLAY
+------------------------------------------------------------
+local rankFrame = Instance.new("Frame")
+rankFrame.Name = "RankDisplay"
+rankFrame.Size = UDim2.new(0, 180, 0, 30)
+rankFrame.Position = UDim2.new(0.5, -90, 0, 80)
+rankFrame.BackgroundColor3 = Config.UI.PrimaryColor
+rankFrame.BackgroundTransparency = 0.3
+rankFrame.BorderSizePixel = 0
+rankFrame.Parent = screenGui
+
+local rankCorner = Instance.new("UICorner")
+rankCorner.CornerRadius = UDim.new(0, 8)
+rankCorner.Parent = rankFrame
+
+local rankLabel = Instance.new("TextLabel")
+rankLabel.Name = "RankText"
+rankLabel.Size = UDim2.new(1, 0, 1, 0)
+rankLabel.BackgroundTransparency = 1
+rankLabel.Text = "Rank: Noob"
+rankLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+rankLabel.TextScaled = true
+rankLabel.Font = Config.UI.FontAccent
+rankLabel.Parent = rankFrame
+
+local rankUpRemote = remotesFolder:FindFirstChild("RankUp")
+if rankUpRemote then
+    rankUpRemote.OnClientEvent:Connect(function(data)
+        rankLabel.Text = "Rank: " .. data.RankName
+        rankLabel.TextColor3 = data.RankColor
+        showRewardNotification("RANK UP! " .. data.RankName, data.RankColor)
+    end)
+end
+
+------------------------------------------------------------
+-- V3: LEADERBOARD UI
+------------------------------------------------------------
+local lbFrame = Instance.new("Frame")
+lbFrame.Name = "LeaderboardPanel"
+lbFrame.Size = UDim2.new(0, 350, 0, 450)
+lbFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
+lbFrame.BackgroundColor3 = Config.UI.PrimaryColor
+lbFrame.BorderSizePixel = 0
+lbFrame.Visible = false
+lbFrame.Parent = screenGui
+
+local lbCorner = Instance.new("UICorner")
+lbCorner.CornerRadius = UDim.new(0, 12)
+lbCorner.Parent = lbFrame
+
+createLabel({
+    Name = "Title", Size = UDim2.new(1, 0, 0, 40),
+    Text = "LEADERBOARDS", Font = Config.UI.FontTitle,
+    TextColor = Color3.fromRGB(255, 215, 0), Parent = lbFrame,
+})
+
+local lbTabs = Instance.new("Frame")
+lbTabs.Size = UDim2.new(1, -10, 0, 30)
+lbTabs.Position = UDim2.new(0, 5, 0, 42)
+lbTabs.BackgroundTransparency = 1
+lbTabs.Parent = lbFrame
+
+local lbTabLayout = Instance.new("UIListLayout")
+lbTabLayout.FillDirection = Enum.FillDirection.Horizontal
+lbTabLayout.Padding = UDim.new(0, 3)
+lbTabLayout.Parent = lbTabs
+
+local lbScroll = Instance.new("ScrollingFrame")
+lbScroll.Size = UDim2.new(1, -20, 1, -85)
+lbScroll.Position = UDim2.new(0, 10, 0, 78)
+lbScroll.BackgroundTransparency = 1
+lbScroll.ScrollBarThickness = 4
+lbScroll.Parent = lbFrame
+
+local lbLayout = Instance.new("UIListLayout")
+lbLayout.Padding = UDim.new(0, 4)
+lbLayout.Parent = lbScroll
+
+for _, lbType in ipairs(Config.Leaderboards.Types) do
+    local tabBtn = Instance.new("TextButton")
+    tabBtn.Name = lbType.Name
+    tabBtn.Size = UDim2.new(0, 62, 0, 28)
+    tabBtn.BackgroundColor3 = Config.UI.SecondaryColor
+    tabBtn.Text = lbType.DisplayName
+    tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tabBtn.TextScaled = true
+    tabBtn.Font = Enum.Font.Gotham
+    tabBtn.Parent = lbTabs
+
+    local tabCorner = Instance.new("UICorner")
+    tabCorner.CornerRadius = UDim.new(0, 4)
+    tabCorner.Parent = tabBtn
+end
+
+local lbBtn = createButton({
+    Name = "LBButton", Size = UDim2.new(0, 60, 0, 35),
+    Position = UDim2.new(0, 345, 0, 0),
+    Text = "Top", Font = Config.UI.FontAccent,
+    Color = Color3.fromRGB(255, 215, 0), Parent = topButtonsFrame or screenGui,
+})
+lbBtn.MouseButton1Click:Connect(function()
+    lbFrame.Visible = not lbFrame.Visible
+end)
+
+------------------------------------------------------------
+-- V3: BOSS HEALTH BAR
+------------------------------------------------------------
+local bossBarFrame = Instance.new("Frame")
+bossBarFrame.Name = "BossBar"
+bossBarFrame.Size = UDim2.new(0.5, 0, 0, 40)
+bossBarFrame.Position = UDim2.new(0.25, 0, 0, 115)
+bossBarFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+bossBarFrame.BackgroundTransparency = 0.3
+bossBarFrame.BorderSizePixel = 0
+bossBarFrame.Visible = false
+bossBarFrame.Parent = screenGui
+
+local bossBarCorner = Instance.new("UICorner")
+bossBarCorner.CornerRadius = UDim.new(0, 8)
+bossBarCorner.Parent = bossBarFrame
+
+local bossBarFill = Instance.new("Frame")
+bossBarFill.Name = "Fill"
+bossBarFill.Size = UDim2.new(1, 0, 1, 0)
+bossBarFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+bossBarFill.BorderSizePixel = 0
+bossBarFill.Parent = bossBarFrame
+
+local bossBarFillCorner = Instance.new("UICorner")
+bossBarFillCorner.CornerRadius = UDim.new(0, 8)
+bossBarFillCorner.Parent = bossBarFill
+
+local bossNameLabel = Instance.new("TextLabel")
+bossNameLabel.Size = UDim2.new(1, 0, 1, 0)
+bossNameLabel.BackgroundTransparency = 1
+bossNameLabel.Text = ""
+bossNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+bossNameLabel.TextScaled = true
+bossNameLabel.Font = Config.UI.FontTitle
+bossNameLabel.ZIndex = 2
+bossNameLabel.Parent = bossBarFrame
+
+local bossSpawnedRemote = remotesFolder:FindFirstChild("BossSpawned")
+if bossSpawnedRemote then
+    bossSpawnedRemote.OnClientEvent:Connect(function(data)
+        bossBarFrame.Visible = true
+        bossNameLabel.Text = data.DisplayName .. " - 100%"
+        bossBarFill.Size = UDim2.new(1, 0, 1, 0)
+        bossBarFill.BackgroundColor3 = data.Color
+        showRewardNotification("BOSS: " .. data.DisplayName .. " apareceu!", Color3.fromRGB(255, 50, 50))
+    end)
+end
+
+local bossDamagedRemote = remotesFolder:FindFirstChild("BossDamaged")
+if bossDamagedRemote then
+    bossDamagedRemote.OnClientEvent:Connect(function(data)
+        local pct = data.RemainingHealth / data.MaxHealth
+        bossBarFill.Size = UDim2.new(math.max(pct, 0), 0, 1, 0)
+        bossNameLabel.Text = bossNameLabel.Text:match("(.+) %-") .. " - " .. math.floor(pct * 100) .. "%"
+    end)
+end
+
+local bossDefeatedRemote = remotesFolder:FindFirstChild("BossDefeated")
+if bossDefeatedRemote then
+    bossDefeatedRemote.OnClientEvent:Connect(function(data)
+        bossBarFrame.Visible = false
+        showRewardNotification("BOSS " .. data.DisplayName .. " DERROTADO!", Color3.fromRGB(255, 215, 0))
+    end)
+end
+
+local bossRewardRemote = remotesFolder:FindFirstChild("BossReward")
+if bossRewardRemote then
+    bossRewardRemote.OnClientEvent:Connect(function(data)
+        local text = "Boss: +$" .. Utils.FormatNumber(data.Money)
+        if data.Gems > 0 then text = text .. " +" .. data.Gems .. " Gems" end
+        if data.GotDrop then text = text .. " + " .. data.DropName .. "!" end
+        showRewardNotification(text, Color3.fromRGB(255, 200, 50))
+    end)
+end
+
+------------------------------------------------------------
+-- V3: EVENT BANNER
+------------------------------------------------------------
+local eventBanner = Instance.new("Frame")
+eventBanner.Name = "EventBanner"
+eventBanner.Size = UDim2.new(0.4, 0, 0, 35)
+eventBanner.Position = UDim2.new(0.3, 0, 0, 150)
+eventBanner.BackgroundTransparency = 0.3
+eventBanner.BorderSizePixel = 0
+eventBanner.Visible = false
+eventBanner.Parent = screenGui
+
+local eventBannerCorner = Instance.new("UICorner")
+eventBannerCorner.CornerRadius = UDim.new(0, 8)
+eventBannerCorner.Parent = eventBanner
+
+local eventBannerLabel = Instance.new("TextLabel")
+eventBannerLabel.Size = UDim2.new(1, 0, 1, 0)
+eventBannerLabel.BackgroundTransparency = 1
+eventBannerLabel.Text = ""
+eventBannerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+eventBannerLabel.TextScaled = true
+eventBannerLabel.Font = Config.UI.FontTitle
+eventBannerLabel.Parent = eventBanner
+
+local eventStartedRemote = remotesFolder:FindFirstChild("EventStarted")
+if eventStartedRemote then
+    eventStartedRemote.OnClientEvent:Connect(function(data)
+        eventBanner.Visible = true
+        eventBanner.BackgroundColor3 = data.Color
+        eventBannerLabel.Text = "EVENTO: " .. data.DisplayName .. "!"
+        showRewardNotification("Evento ativo: " .. data.DisplayName, data.Color)
+
+        task.delay(data.Duration, function()
+            eventBanner.Visible = false
+        end)
+    end)
+end
+
+local eventEndedRemote = remotesFolder:FindFirstChild("EventEnded")
+if eventEndedRemote then
+    eventEndedRemote.OnClientEvent:Connect(function()
+        eventBanner.Visible = false
+    end)
+end
+
+------------------------------------------------------------
+-- V3: ACHIEVEMENT POPUP
+------------------------------------------------------------
+local achievementRemote = remotesFolder:FindFirstChild("AchievementUnlocked")
+if achievementRemote then
+    achievementRemote.OnClientEvent:Connect(function(data)
+        showRewardNotification("CONQUISTA: " .. data.Description, Color3.fromRGB(255, 215, 0))
+    end)
+end
+
+------------------------------------------------------------
+-- V3: SECRET FOUND
+------------------------------------------------------------
+local secretFoundRemote = remotesFolder:FindFirstChild("SecretFound")
+if secretFoundRemote then
+    secretFoundRemote.OnClientEvent:Connect(function(data)
+        showRewardNotification("SEGREDO encontrado: " .. data.Name .. "!", Color3.fromRGB(150, 0, 255))
+    end)
+end
+
+------------------------------------------------------------
+-- V3: GAMEPASS PURCHASED
+------------------------------------------------------------
+local gamepassRemote = remotesFolder:FindFirstChild("GamepassPurchased")
+if gamepassRemote then
+    gamepassRemote.OnClientEvent:Connect(function(data)
+        showRewardNotification(data.Name .. " COMPRADO!", Color3.fromRGB(255, 215, 0))
+    end)
+end
+
+------------------------------------------------------------
+-- V3: GEMS DISPLAY
+------------------------------------------------------------
+local gemsFrame = Instance.new("Frame")
+gemsFrame.Name = "GemsDisplay"
+gemsFrame.Size = UDim2.new(0, 120, 0, 28)
+gemsFrame.Position = UDim2.new(1, -130, 0, 10)
+gemsFrame.BackgroundColor3 = Color3.fromRGB(100, 50, 200)
+gemsFrame.BackgroundTransparency = 0.3
+gemsFrame.BorderSizePixel = 0
+gemsFrame.Parent = screenGui
+
+local gemsCorner = Instance.new("UICorner")
+gemsCorner.CornerRadius = UDim.new(0, 6)
+gemsCorner.Parent = gemsFrame
+
+local gemsLabel = Instance.new("TextLabel")
+gemsLabel.Name = "GemsText"
+gemsLabel.Size = UDim2.new(1, 0, 1, 0)
+gemsLabel.BackgroundTransparency = 1
+gemsLabel.Text = "0 Gems"
+gemsLabel.TextColor3 = Color3.fromRGB(220, 180, 255)
+gemsLabel.TextScaled = true
+gemsLabel.Font = Config.UI.FontAccent
+gemsLabel.Parent = gemsFrame
+
+------------------------------------------------------------
+-- V3: UPDATE STATS (override to include gems + rank)
+------------------------------------------------------------
+local updateStatsRemote = remotesFolder:FindFirstChild("UpdatePlayerStats")
+if updateStatsRemote then
+    updateStatsRemote.OnClientEvent:Connect(function(stats)
+        if gemsLabel then
+            gemsLabel.Text = Utils.FormatNumber(stats.Gems or 0) .. " Gems"
+        end
+        if rankLabel and stats.Rank then
+            for _, r in ipairs(Config.Ranks) do
+                if r.Name == stats.Rank then
+                    rankLabel.Text = "Rank: " .. r.DisplayName
+                    rankLabel.TextColor3 = r.Color
+                    break
+                end
+            end
+        end
+    end)
+end
+
+------------------------------------------------------------
+-- V3: COSMETIC EFFECT
+------------------------------------------------------------
+local cosmeticRemote = remotesFolder:FindFirstChild("ApplyCosmeticEffect")
+if cosmeticRemote then
+    cosmeticRemote.OnClientEvent:Connect(function(data)
+        showRewardNotification("Efeito " .. data.Name .. " aplicado!", Color3.fromRGB(255, 200, 100))
+    end)
+end
+
+------------------------------------------------------------
+-- V3: PET EQUIPPED
+------------------------------------------------------------
+local petEquipRemote = remotesFolder:FindFirstChild("PetEquipped")
+if petEquipRemote then
+    petEquipRemote.OnClientEvent:Connect(function(data)
+        showRewardNotification("Pet equipado: " .. data.DisplayName, Color3.fromRGB(200, 150, 255))
+    end)
+end
+
+------------------------------------------------------------
+-- V3: EMOTE PLAYED
+------------------------------------------------------------
+local emotePlayedRemote = remotesFolder:FindFirstChild("EmotePlayed")
+if emotePlayedRemote then
+    emotePlayedRemote.OnClientEvent:Connect(function(data)
+        if data.Player ~= player.Name then
+            showRewardNotification(data.Player .. " usou " .. data.DisplayName, Color3.fromRGB(255, 180, 220))
+        end
+    end)
+end
+
+print("[Client] MainUI v3.0 initialized")

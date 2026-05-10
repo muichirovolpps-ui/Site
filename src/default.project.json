@@ -51,6 +51,39 @@
       },
       "AdvancedAntiCheat": {
         "$path": "ServerScriptService/AdvancedAntiCheat.lua"
+      },
+      "EventSystemServer": {
+        "$path": "ServerScriptService/EventSystemServer.lua"
+      },
+      "BossServer": {
+        "$path": "ServerScriptService/BossServer.lua"
+      },
+      "PetEffectsServer": {
+        "$path": "ServerScriptService/PetEffectsServer.lua"
+      },
+      "QuestServer": {
+        "$path": "ServerScriptService/QuestServer.lua"
+      },
+      "SpinWheelServer": {
+        "$path": "ServerScriptService/SpinWheelServer.lua"
+      },
+      "EmoteServer": {
+        "$path": "ServerScriptService/EmoteServer.lua"
+      },
+      "RankServer": {
+        "$path": "ServerScriptService/RankServer.lua"
+      },
+      "LeaderboardServer": {
+        "$path": "ServerScriptService/LeaderboardServer.lua"
+      },
+      "SecretServer": {
+        "$path": "ServerScriptService/SecretServer.lua"
+      },
+      "SuperVIPServer": {
+        "$path": "ServerScriptService/SuperVIPServer.lua"
+      },
+      "GamepassServer": {
+        "$path": "ServerScriptService/GamepassServer.lua"
       }
     },
     "ReplicatedStorage": {
@@ -107,6 +140,9 @@
         },
         "BaseBuilder": {
           "$path": "Workspace/Builders/BaseBuilder.lua"
+        },
+        "MegaMapBuilder": {
+          "$path": "Workspace/Builders/MegaMapBuilder.lua"
         }
       }
     }
