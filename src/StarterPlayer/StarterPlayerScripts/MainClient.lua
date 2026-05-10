@@ -231,7 +231,7 @@ task.spawn(function()
 end)
 
 ------------------------------------------------------------
--- INITIALIZE V2 SYSTEMS
+-- INITIALIZE V3 SYSTEMS
 ------------------------------------------------------------
 local EffectsClient = require(script.Parent:WaitForChild("EffectsClient"))
 EffectsClient.Initialize()
@@ -243,4 +243,40 @@ task.spawn(function()
     end
 end)
 
-print("[Client] MainClient v2.0 initialized for " .. player.Name)
+-- Quest progress tracking (client-side kick counter)
+remotesFolder:WaitForChild("KickResult").OnClientEvent:Connect(function(data)
+    if data and data.Money then
+        local claimQuestRemote = remotesFolder:FindFirstChild("ClaimQuestReward")
+        -- Quest progress is tracked server-side via QuestServer.UpdateProgress
+    end
+end)
+
+-- Attack boss button (when boss is active)
+remotesFolder:WaitForChild("BossSpawned").OnClientEvent:Connect(function(data)
+    local attackBtn = Instance.new("TextButton")
+    attackBtn.Name = "AttackBossBtn"
+    attackBtn.Size = UDim2.new(0, 180, 0, 50)
+    attackBtn.Position = UDim2.new(0.5, -90, 1, -70)
+    attackBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    attackBtn.Text = "ATACAR BOSS!"
+    attackBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    attackBtn.TextScaled = true
+    attackBtn.Font = Enum.Font.GothamBold
+    attackBtn.Parent = playerGui:FindFirstChild("MainUI") or playerGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = attackBtn
+
+    attackBtn.MouseButton1Click:Connect(function()
+        remotesFolder:FindFirstChild("AttackBoss"):FireServer()
+    end)
+
+    remotesFolder:WaitForChild("BossDefeated").OnClientEvent:Connect(function()
+        if attackBtn and attackBtn.Parent then
+            attackBtn:Destroy()
+        end
+    end)
+end)
+
+print("[Client] MainClient v3.0 initialized for " .. player.Name)

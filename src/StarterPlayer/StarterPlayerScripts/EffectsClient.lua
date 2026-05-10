@@ -1,7 +1,8 @@
 --[[
-    EffectsClient.lua  v2.0 (StarterPlayerScripts)
+    EffectsClient.lua  v3.0 (StarterPlayerScripts)
     Handles visual effects: explosions, particles, camera shake, floating text,
-    kick fly animation, meteor impacts, VIP particles, passive income popups.
+    kick fly animation, meteor impacts, VIP particles, passive income popups,
+    boss effects, event banners, brainrot rain, achievement sparks.
 ]]
 
 local TweenService = game:GetService("TweenService")
@@ -466,6 +467,121 @@ function EffectsClient.Initialize()
             EffectsClient.PassiveIncomePopup(amount)
         end)
     end
+
+    -- V3: Boss damage flash
+    local bossDamaged = remotesFolder:FindFirstChild("BossDamaged")
+    if bossDamaged then
+        bossDamaged.OnClientEvent:Connect(function(data)
+            EffectsClient.BossDamageFlash(data)
+        end)
+    end
+
+    -- V3: Boss defeated celebration
+    local bossDefeated = remotesFolder:FindFirstChild("BossDefeated")
+    if bossDefeated then
+        bossDefeated.OnClientEvent:Connect(function(data)
+            EffectsClient.BossDefeatCelebration(data)
+        end)
+    end
+
+    -- V3: Brainrot rain visual
+    local brainrotRain = remotesFolder:FindFirstChild("BrainrotRainDrop")
+    if brainrotRain then
+        brainrotRain.OnClientEvent:Connect(function(data)
+            EffectsClient.BrainrotRainDrop(data)
+        end)
+    end
+
+    -- V3: Achievement sparkle
+    local achieveUnlocked = remotesFolder:FindFirstChild("AchievementUnlocked")
+    if achieveUnlocked then
+        achieveUnlocked.OnClientEvent:Connect(function(data)
+            EffectsClient.AchievementSparkle()
+        end)
+    end
+end
+
+------------------------------------------------------------
+-- V3: BOSS DAMAGE FLASH
+------------------------------------------------------------
+function EffectsClient.BossDamageFlash(data)
+    EffectsClient.CameraShake(0.3, 2)
+    EffectsClient.FloatingText("+" .. Utils.FormatNumber(data.Damage) .. " DMG",
+        Vector3.new(0, 10, -100), Color3.fromRGB(255, 50, 50))
+end
+
+------------------------------------------------------------
+-- V3: BOSS DEFEAT CELEBRATION
+------------------------------------------------------------
+function EffectsClient.BossDefeatCelebration(data)
+    EffectsClient.CameraShake(1, 8)
+
+    local character = player.Character
+    if not character then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    for i = 1, 20 do
+        local confetti = Instance.new("Part")
+        confetti.Size = Vector3.new(0.3, 0.3, 0.3)
+        confetti.Position = hrp.Position + Vector3.new(
+            math.random(-10, 10), math.random(5, 15), math.random(-10, 10)
+        )
+        confetti.Color = Color3.fromHSV(math.random(), 1, 1)
+        confetti.Material = Enum.Material.Neon
+        confetti.Anchored = false
+        confetti.CanCollide = false
+        confetti.Parent = workspace
+        Debris:AddItem(confetti, 3)
+    end
+end
+
+------------------------------------------------------------
+-- V3: BRAINROT RAIN DROP
+------------------------------------------------------------
+function EffectsClient.BrainrotRainDrop(data)
+    local drop = Instance.new("Part")
+    drop.Size = Vector3.new(2, 2, 2)
+    drop.Shape = Enum.PartType.Ball
+    drop.Position = data.Position
+    drop.Color = Color3.fromHSV(math.random(), 0.8, 1)
+    drop.Material = Enum.Material.Neon
+    drop.Anchored = false
+    drop.CanCollide = true
+    drop.Parent = workspace
+
+    local light = Instance.new("PointLight")
+    light.Color = drop.Color
+    light.Brightness = 2
+    light.Range = 10
+    light.Parent = drop
+
+    Debris:AddItem(drop, 5)
+end
+
+------------------------------------------------------------
+-- V3: ACHIEVEMENT SPARKLE
+------------------------------------------------------------
+function EffectsClient.AchievementSparkle()
+    local character = player.Character
+    if not character then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local emitter = Instance.new("ParticleEmitter")
+    emitter.Color = ColorSequence.new(Color3.fromRGB(255, 215, 0))
+    emitter.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 0)})
+    emitter.Rate = 50
+    emitter.Lifetime = NumberRange.new(0.5, 1)
+    emitter.Speed = NumberRange.new(5, 10)
+    emitter.SpreadAngle = Vector2.new(180, 180)
+    emitter.Parent = hrp
+
+    task.delay(2, function()
+        emitter:Destroy()
+    end)
+
+    EffectsClient.CameraShake(0.5, 4)
 end
 
 return EffectsClient
