@@ -1,0 +1,114 @@
+{
+  "name": "TreineParaChutarLuckyBlock",
+  "tree": {
+    "$className": "DataModel",
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "MainServer": {
+        "$path": "ServerScriptService/MainServer.lua"
+      },
+      "DataStoreManager": {
+        "$path": "ServerScriptService/DataStoreManager.lua"
+      },
+      "LuckyBlockServer": {
+        "$path": "ServerScriptService/LuckyBlockServer.lua"
+      },
+      "TrainingServer": {
+        "$path": "ServerScriptService/TrainingServer.lua"
+      },
+      "ShopServer": {
+        "$path": "ServerScriptService/ShopServer.lua"
+      },
+      "RebirthServer": {
+        "$path": "ServerScriptService/RebirthServer.lua"
+      },
+      "BaseServer": {
+        "$path": "ServerScriptService/BaseServer.lua"
+      },
+      "AntiExploit": {
+        "$path": "ServerScriptService/AntiExploit.lua"
+      },
+      "AdminServer": {
+        "$path": "ServerScriptService/AdminServer.lua"
+      },
+      "MeteorEventServer": {
+        "$path": "ServerScriptService/MeteorEventServer.lua"
+      },
+      "DistanceKickServer": {
+        "$path": "ServerScriptService/DistanceKickServer.lua"
+      },
+      "BrainrotLevelServer": {
+        "$path": "ServerScriptService/BrainrotLevelServer.lua"
+      },
+      "SellerNPCServer": {
+        "$path": "ServerScriptService/SellerNPCServer.lua"
+      },
+      "PassiveIncomeServer": {
+        "$path": "ServerScriptService/PassiveIncomeServer.lua"
+      },
+      "VIPServer": {
+        "$path": "ServerScriptService/VIPServer.lua"
+      },
+      "AdvancedAntiCheat": {
+        "$path": "ServerScriptService/AdvancedAntiCheat.lua"
+      }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Modules": {
+        "$className": "Folder",
+        "Config": {
+          "$path": "ReplicatedStorage/Modules/Config.lua"
+        },
+        "Utils": {
+          "$path": "ReplicatedStorage/Modules/Utils.lua"
+        },
+        "BrainrotDatabase": {
+          "$path": "ReplicatedStorage/Modules/BrainrotDatabase.lua"
+        },
+        "RemoteSetup": {
+          "$path": "ReplicatedStorage/Modules/RemoteSetup.lua"
+        }
+      },
+      "Remotes": {
+        "$className": "Folder"
+      }
+    },
+    "StarterGui": {
+      "$className": "StarterGui",
+      "MainUI": {
+        "$path": "StarterGui/MainUI.lua"
+      },
+      "AdminUI": {
+        "$path": "StarterGui/AdminUI.lua"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "MainClient": {
+          "$path": "StarterPlayer/StarterPlayerScripts/MainClient.lua"
+        },
+        "EffectsClient": {
+          "$path": "StarterPlayer/StarterPlayerScripts/EffectsClient.lua"
+        }
+      }
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "Builders": {
+        "$className": "Folder",
+        "LobbyBuilder": {
+          "$path": "Workspace/Builders/LobbyBuilder.lua"
+        },
+        "RarityRoadBuilder": {
+          "$path": "Workspace/Builders/RarityRoadBuilder.lua"
+        },
+        "BaseBuilder": {
+          "$path": "Workspace/Builders/BaseBuilder.lua"
+        }
+      }
+    }
+  }
+}
