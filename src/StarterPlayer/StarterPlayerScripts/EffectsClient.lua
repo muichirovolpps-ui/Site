@@ -1,12 +1,15 @@
 --[[
-    EffectsClient.lua (StarterPlayerScripts)
-    Handles visual effects: explosions, particles, camera shake, floating text.
+    EffectsClient.lua  v2.0 (StarterPlayerScripts)
+    Handles visual effects: explosions, particles, camera shake, floating text,
+    kick fly animation, meteor impacts, VIP particles, passive income popups.
 ]]
 
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Debris = game:GetService("Debris")
+local RunService = game:GetService("RunService")
 
 local Utils = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Utils"))
 
@@ -19,9 +22,9 @@ function EffectsClient.LuckyBlockExplosion(data)
     local position = data.Position or Vector3.new(0, 5, 0)
     local color = data.Color or Color3.fromRGB(255, 215, 0)
 
-    for i = 1, 12 do
+    for i = 1, 16 do
         local particle = Instance.new("Part")
-        particle.Size = Vector3.new(1, 1, 1)
+        particle.Size = Vector3.new(math.random(5, 15) / 10, math.random(5, 15) / 10, math.random(5, 15) / 10)
         particle.Position = position
         particle.Color = color
         particle.Material = Enum.Material.Neon
@@ -30,110 +33,289 @@ function EffectsClient.LuckyBlockExplosion(data)
         particle.Parent = Workspace
 
         local direction = Vector3.new(
-            (math.random() - 0.5) * 2,
-            math.random() * 1.5,
-            (math.random() - 0.5) * 2
-        ).Unit * math.random(20, 40)
+            math.random(-100, 100) / 100,
+            math.random(50, 100) / 100,
+            math.random(-100, 100) / 100
+        ).Unit * math.random(20, 50)
 
-        local bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.Velocity = direction
-        bodyVelocity.MaxForce = Vector3.new(1e6, 1e6, 1e6)
-        bodyVelocity.Parent = particle
+        local bv = Instance.new("BodyVelocity")
+        bv.Velocity = direction
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Parent = particle
 
-        Utils.CreateParticles(particle, color, 20, 5, 0.5)
+        TweenService:Create(particle, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Transparency = 1,
+            Size = Vector3.new(0, 0, 0),
+        }):Play()
 
-        task.spawn(function()
-            task.wait(0.3)
-            bodyVelocity:Destroy()
-            Utils.TweenObject(particle, {
-                Transparency = 1,
-                Size = Vector3.new(0.1, 0.1, 0.1),
-            }, 0.5)
-            task.wait(0.6)
-            particle:Destroy()
-        end)
+        Debris:AddItem(particle, 1)
     end
 
     local flash = Instance.new("Part")
+    flash.Shape = Enum.PartType.Ball
     flash.Size = Vector3.new(2, 2, 2)
     flash.Position = position
     flash.Color = Color3.fromRGB(255, 255, 255)
     flash.Material = Enum.Material.Neon
     flash.Anchored = true
     flash.CanCollide = false
-    flash.Shape = Enum.PartType.Ball
     flash.Parent = Workspace
 
-    Utils.TweenObject(flash, {
+    TweenService:Create(flash, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {
         Size = Vector3.new(15, 15, 15),
         Transparency = 1,
-    }, 0.4)
+    }):Play()
+    Debris:AddItem(flash, 0.6)
 
-    task.delay(0.5, function()
-        flash:Destroy()
+    local ring = Instance.new("Part")
+    ring.Shape = Enum.PartType.Cylinder
+    ring.Size = Vector3.new(0.2, 2, 2)
+    ring.Position = position
+    ring.Orientation = Vector3.new(0, 0, 90)
+    ring.Color = color
+    ring.Material = Enum.Material.Neon
+    ring.Anchored = true
+    ring.CanCollide = false
+    ring.Parent = Workspace
+
+    TweenService:Create(ring, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
+        Size = Vector3.new(0.1, 25, 25),
+        Transparency = 1,
+    }):Play()
+    Debris:AddItem(ring, 0.7)
+
+    EffectsClient.ScreenShake(0.5, 0.4)
+end
+
+function EffectsClient.KickFlyEffect(data)
+    local character = player.Character
+    if not character then return end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
+
+    local distance = data.Distance or 100
+    local flyDuration = data.FlyDuration or 2.0
+    local spinSpeed = data.SpinSpeed or 720
+
+    local trail0 = Instance.new("Attachment")
+    trail0.Position = Vector3.new(0, 1, 0)
+    trail0.Parent = rootPart
+
+    local trail1 = Instance.new("Attachment")
+    trail1.Position = Vector3.new(0, -1, 0)
+    trail1.Parent = rootPart
+
+    local trail = Instance.new("Trail")
+    trail.Attachment0 = trail0
+    trail.Attachment1 = trail1
+    trail.Color = ColorSequence.new(Color3.fromRGB(255, 200, 0), Color3.fromRGB(255, 80, 0))
+    trail.Lifetime = 0.8
+    trail.LightEmission = 1
+    trail.MinLength = 0
+    trail.Parent = rootPart
+
+    local speedLines = Instance.new("ParticleEmitter")
+    speedLines.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
+    speedLines.Size = NumberSequence.new(0.3, 0)
+    speedLines.Lifetime = NumberRange.new(0.2, 0.4)
+    speedLines.Rate = 50
+    speedLines.Speed = NumberRange.new(20, 40)
+    speedLines.SpreadAngle = Vector2.new(10, 10)
+    speedLines.LightEmission = 1
+    speedLines.Parent = rootPart
+
+    EffectsClient.ScreenShake(data.CameraShakeIntensity or 0.5, data.CameraShakeDuration or 0.4)
+
+    spawn(function()
+        wait(flyDuration)
+        trail:Destroy()
+        trail0:Destroy()
+        trail1:Destroy()
+        speedLines:Destroy()
+
+        EffectsClient.LandingImpact(rootPart.Position)
     end)
+end
 
-    Utils.ScreenShake(camera, 0.3, 0.3)
+function EffectsClient.LandingImpact(position)
+    local ring = Instance.new("Part")
+    ring.Shape = Enum.PartType.Cylinder
+    ring.Size = Vector3.new(0.3, 1, 1)
+    ring.Position = position
+    ring.Orientation = Vector3.new(0, 0, 90)
+    ring.Color = Color3.fromRGB(255, 200, 50)
+    ring.Material = Enum.Material.Neon
+    ring.Anchored = true
+    ring.CanCollide = false
+    ring.Parent = Workspace
+
+    TweenService:Create(ring, TweenInfo.new(0.5, Enum.EasingStyle.Quad), {
+        Size = Vector3.new(0.1, 30, 30),
+        Transparency = 1,
+    }):Play()
+    Debris:AddItem(ring, 0.6)
+
+    EffectsClient.ScreenShake(0.3, 0.3)
+end
+
+function EffectsClient.MeteorImpact(position)
+    EffectsClient.ScreenShake(1.0, 0.8)
+
+    for i = 1, 20 do
+        local debris = Instance.new("Part")
+        debris.Size = Vector3.new(math.random(10, 30) / 10, math.random(10, 30) / 10, math.random(10, 30) / 10)
+        debris.Position = position + Vector3.new(math.random(-5, 5), math.random(0, 3), math.random(-5, 5))
+        debris.Color = Color3.fromRGB(math.random(100, 200), math.random(40, 80), 0)
+        debris.Material = Enum.Material.Neon
+        debris.Anchored = false
+        debris.CanCollide = false
+        debris.Parent = Workspace
+
+        local bv = Instance.new("BodyVelocity")
+        bv.Velocity = Vector3.new(math.random(-40, 40), math.random(30, 80), math.random(-40, 40))
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Parent = debris
+
+        TweenService:Create(debris, TweenInfo.new(1.5), { Transparency = 1 }):Play()
+        Debris:AddItem(debris, 2)
+    end
+
+    local shockwave = Instance.new("Part")
+    shockwave.Shape = Enum.PartType.Cylinder
+    shockwave.Size = Vector3.new(0.5, 3, 3)
+    shockwave.Position = position
+    shockwave.Orientation = Vector3.new(0, 0, 90)
+    shockwave.Color = Color3.fromRGB(255, 120, 0)
+    shockwave.Material = Enum.Material.Neon
+    shockwave.Anchored = true
+    shockwave.CanCollide = false
+    shockwave.Parent = Workspace
+
+    TweenService:Create(shockwave, TweenInfo.new(0.8), {
+        Size = Vector3.new(0.1, 50, 50),
+        Transparency = 1,
+    }):Play()
+    Debris:AddItem(shockwave, 1)
+end
+
+function EffectsClient.MeteorWarning()
+    local warningPart = Instance.new("Part")
+    warningPart.Size = Vector3.new(0.1, 0.1, 0.1)
+    warningPart.Position = (player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position) or Vector3.new(0, 10, 0)
+    warningPart.Transparency = 1
+    warningPart.Anchored = true
+    warningPart.CanCollide = false
+    warningPart.Parent = Workspace
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0, 300, 0, 80)
+    billboard.StudsOffset = Vector3.new(0, 15, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = warningPart
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = "CHUVA DE METEOROS!"
+    label.TextColor3 = Color3.fromRGB(255, 100, 0)
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 32
+    label.TextStrokeTransparency = 0
+    label.TextStrokeColor3 = Color3.fromRGB(100, 30, 0)
+    label.Parent = billboard
+
+    spawn(function()
+        for i = 1, 6 do
+            label.TextTransparency = 0
+            wait(0.4)
+            label.TextTransparency = 0.5
+            wait(0.4)
+        end
+        warningPart:Destroy()
+    end)
 end
 
 function EffectsClient.TrainPunch(data)
-    local amount = data.Amount or 1
+    local position = data.Position or Vector3.new(0, 5, 0)
+    local value = data.Value or 1
+    local color = data.Color or Color3.fromRGB(255, 200, 50)
 
-    local character = player.Character
-    if not character then return end
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    EffectsClient.FloatingText(
-        hrp.Position + Vector3.new(0, 3, 0),
-        "+" .. amount .. " Forca",
-        Color3.fromRGB(255, 100, 100),
-        1.5
-    )
+    EffectsClient.FloatingText({
+        Position = position + Vector3.new(math.random(-2, 2), 2, math.random(-2, 2)),
+        Text = "+" .. value,
+        Color = color,
+        Duration = 0.6,
+        Size = 24,
+    })
 end
 
-function EffectsClient.RebirthExplosion()
+function EffectsClient.RebirthExplosion(data)
+    local rebirthLevel = data.Level or 1
     local character = player.Character
-    if not character then return end
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
+    local position = character and character:FindFirstChild("HumanoidRootPart") and character.HumanoidRootPart.Position or Vector3.new(0, 5, 0)
 
-    for i = 1, 20 do
+    for r = 1, 5 do
         local ring = Instance.new("Part")
-        ring.Size = Vector3.new(1, 1, 1)
-        ring.Position = hrp.Position
-        ring.Color = Color3.fromHSV(i / 20, 1, 1)
+        ring.Shape = Enum.PartType.Cylinder
+        ring.Size = Vector3.new(0.3, 2, 2)
+        ring.Position = position + Vector3.new(0, r * 2, 0)
+        ring.Orientation = Vector3.new(0, 0, 90)
+        ring.Color = Color3.fromHSV(r / 5, 1, 1)
         ring.Material = Enum.Material.Neon
         ring.Anchored = true
         ring.CanCollide = false
-        ring.Shape = Enum.PartType.Ball
         ring.Parent = Workspace
 
-        task.spawn(function()
-            task.wait(i * 0.05)
-            Utils.TweenObject(ring, {
-                Size = Vector3.new(20 + i * 3, 20 + i * 3, 20 + i * 3),
+        spawn(function()
+            wait(r * 0.1)
+            TweenService:Create(ring, TweenInfo.new(1, Enum.EasingStyle.Quad), {
+                Size = Vector3.new(0.1, 40 + r * 5, 40 + r * 5),
                 Transparency = 1,
-            }, 0.8)
-            task.wait(1)
-            ring:Destroy()
+            }):Play()
+            Debris:AddItem(ring, 1.2)
         end)
     end
 
-    Utils.ScreenShake(camera, 1.0, 0.8)
+    for i = 1, 30 do
+        local star = Instance.new("Part")
+        star.Size = Vector3.new(0.5, 0.5, 0.5)
+        star.Position = position
+        star.Color = Color3.fromHSV(math.random() , 1, 1)
+        star.Material = Enum.Material.Neon
+        star.Anchored = false
+        star.CanCollide = false
+        star.Parent = Workspace
+
+        local bv = Instance.new("BodyVelocity")
+        bv.Velocity = Vector3.new(math.random(-60, 60), math.random(40, 100), math.random(-60, 60))
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Parent = star
+
+        TweenService:Create(star, TweenInfo.new(1.5), { Transparency = 1, Size = Vector3.new(0, 0, 0) }):Play()
+        Debris:AddItem(star, 2)
+    end
+
+    EffectsClient.ScreenShake(1.5, 1.0)
 end
 
-function EffectsClient.FloatingText(position, text, color, duration)
+function EffectsClient.FloatingText(data)
+    local position = data.Position or Vector3.new(0, 10, 0)
+    local text = data.Text or ""
+    local color = data.Color or Color3.fromRGB(255, 255, 255)
+    local duration = data.Duration or 1.0
+    local textSize = data.Size or 20
+
     local part = Instance.new("Part")
     part.Size = Vector3.new(0.1, 0.1, 0.1)
     part.Position = position
+    part.Transparency = 1
     part.Anchored = true
     part.CanCollide = false
-    part.Transparency = 1
     part.Parent = Workspace
 
     local billboard = Instance.new("BillboardGui")
-    billboard.Size = UDim2.new(6, 0, 1.5, 0)
+    billboard.Size = UDim2.new(0, 200, 0, 60)
+    billboard.StudsOffset = Vector3.new(0, 0, 0)
     billboard.AlwaysOnTop = true
     billboard.Parent = part
 
@@ -141,95 +323,149 @@ function EffectsClient.FloatingText(position, text, color, duration)
     label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
     label.Text = text
-    label.TextColor3 = color or Color3.fromRGB(255, 255, 255)
-    label.TextStrokeTransparency = 0.3
-    label.TextScaled = true
+    label.TextColor3 = color
+    label.TextStrokeTransparency = 0
+    label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    label.TextScaled = false
+    label.TextSize = textSize
     label.Font = Enum.Font.GothamBold
     label.Parent = billboard
 
-    local startPos = position
-    local endPos = position + Vector3.new(0, 5, 0)
+    TweenService:Create(part, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = position + Vector3.new(0, 5, 0),
+    }):Play()
 
-    task.spawn(function()
-        local elapsed = 0
-        local dur = duration or 1.5
+    TweenService:Create(label, TweenInfo.new(duration * 0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        TextTransparency = 1,
+        TextStrokeTransparency = 1,
+    }):Play()
 
-        while elapsed < dur do
-            local dt = task.wait()
-            elapsed = elapsed + dt
-            local t = elapsed / dur
-            part.Position = startPos:Lerp(endPos, t)
-            label.TextTransparency = t * 1.5
-            label.TextStrokeTransparency = 0.3 + (t * 0.7)
+    Debris:AddItem(part, duration + 0.1)
+end
+
+function EffectsClient.FloatingReward(data)
+    local position = data.Position or Vector3.new(0, 5, 0)
+    local yOffset = 0
+
+    if data.Money and data.Money > 0 then
+        EffectsClient.FloatingText({
+            Position = position + Vector3.new(0, yOffset, 0),
+            Text = "+$" .. Utils.FormatNumber(data.Money),
+            Color = Color3.fromRGB(80, 255, 80),
+            Duration = 1.2,
+            Size = 22,
+        })
+        yOffset = yOffset + 2
+    end
+
+    if data.Strength and data.Strength > 0 then
+        EffectsClient.FloatingText({
+            Position = position + Vector3.new(0, yOffset, 0),
+            Text = "+" .. Utils.FormatNumber(data.Strength) .. " STR",
+            Color = Color3.fromRGB(255, 100, 100),
+            Duration = 1.2,
+            Size = 20,
+        })
+        yOffset = yOffset + 2
+    end
+
+    if data.Distance and data.Distance > 0 then
+        EffectsClient.FloatingText({
+            Position = position + Vector3.new(0, yOffset, 0),
+            Text = Utils.FormatNumber(data.Distance) .. "m",
+            Color = Color3.fromRGB(255, 200, 50),
+            Duration = 1.5,
+            Size = 26,
+        })
+    end
+end
+
+function EffectsClient.PassiveIncomePopup(amount)
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+
+    EffectsClient.FloatingText({
+        Position = character.HumanoidRootPart.Position + Vector3.new(math.random(-3, 3), 4, math.random(-3, 3)),
+        Text = "+$" .. Utils.FormatNumber(amount),
+        Color = Color3.fromRGB(150, 255, 150),
+        Duration = 1.0,
+        Size = 16,
+    })
+end
+
+function EffectsClient.ScreenShake(intensity, duration)
+    intensity = intensity or 0.5
+    duration = duration or 0.3
+
+    spawn(function()
+        local startTime = tick()
+        while tick() - startTime < duration do
+            local elapsed = tick() - startTime
+            local fadeOut = 1 - (elapsed / duration)
+            local offset = CFrame.new(
+                math.random(-100, 100) / 100 * intensity * fadeOut,
+                math.random(-100, 100) / 100 * intensity * fadeOut,
+                0
+            )
+            camera.CFrame = camera.CFrame * offset
+            RunService.RenderStepped:Wait()
         end
-        part:Destroy()
     end)
 end
 
-function EffectsClient.FloatingReward(position, rewardData)
-    local yOffset = 0
-    if rewardData.Money and rewardData.Money > 0 then
-        EffectsClient.FloatingText(
-            position + Vector3.new(0, yOffset, 0),
-            "+$" .. Utils.FormatNumber(rewardData.Money),
-            Color3.fromRGB(255, 215, 0),
-            2
-        )
-        yOffset = yOffset + 1.5
-    end
-    if rewardData.Strength and rewardData.Strength > 0 then
-        EffectsClient.FloatingText(
-            position + Vector3.new(0, yOffset, 0),
-            "+" .. Utils.FormatNumber(rewardData.Strength) .. " Forca",
-            Color3.fromRGB(255, 100, 100),
-            2
-        )
-        yOffset = yOffset + 1.5
-    end
-    if rewardData.Luck and rewardData.Luck > 0 then
-        EffectsClient.FloatingText(
-            position + Vector3.new(0, yOffset, 0),
-            "+" .. string.format("%.1f", rewardData.Luck) .. " Sorte",
-            Color3.fromRGB(100, 255, 200),
-            2
-        )
-    end
+function EffectsClient.CreateSound(soundId, volume, parent)
+    local sound = Instance.new("Sound")
+    sound.SoundId = soundId or ""
+    sound.Volume = volume or 0.5
+    sound.Parent = parent or Workspace
+    sound:Play()
+    Debris:AddItem(sound, sound.TimeLength + 1)
+    return sound
 end
 
-------------------------------------------------------------
--- GLOBAL EFFECT DISPATCHER
-------------------------------------------------------------
-_G.PlayEffect = function(effectName, effectData)
-    if effectName == "LuckyBlockExplosion" then
-        EffectsClient.LuckyBlockExplosion(effectData)
-    elseif effectName == "TrainPunch" then
-        EffectsClient.TrainPunch(effectData)
-    elseif effectName == "RebirthExplosion" then
-        EffectsClient.RebirthExplosion()
+function EffectsClient.Initialize()
+    local remotesFolder = ReplicatedStorage:WaitForChild("Remotes")
+
+    local playEffect = remotesFolder:FindFirstChild("PlayEffect")
+    if playEffect then
+        playEffect.OnClientEvent:Connect(function(effectName, data)
+            if EffectsClient[effectName] then
+                EffectsClient[effectName](data)
+            end
+        end)
+    end
+
+    local meteorEvent = remotesFolder:FindFirstChild("MeteorEvent")
+    if meteorEvent then
+        meteorEvent.OnClientEvent:Connect(function(eventType, data)
+            if eventType == "impact" then
+                EffectsClient.MeteorImpact(data)
+            end
+        end)
+    end
+
+    local meteorWarning = remotesFolder:FindFirstChild("MeteorWarning")
+    if meteorWarning then
+        meteorWarning.OnClientEvent:Connect(function(warningType, _)
+            if warningType == "start" then
+                EffectsClient.MeteorWarning()
+            end
+        end)
+    end
+
+    local kickResult = remotesFolder:FindFirstChild("KickResult")
+    if kickResult then
+        kickResult.OnClientEvent:Connect(function(data)
+            EffectsClient.KickFlyEffect(data)
+        end)
+    end
+
+    local passiveIncome = remotesFolder:FindFirstChild("PassiveIncomeUpdate")
+    if passiveIncome then
+        passiveIncome.OnClientEvent:Connect(function(amount)
+            EffectsClient.PassiveIncomePopup(amount)
+        end)
     end
 end
-
-_G.PlayKickAnimation = function()
-    local character = player.Character
-    if not character then return end
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    local kickAnim = Instance.new("Animation")
-    kickAnim.AnimationId = "rbxassetid://0"
-    -- Placeholder animation ID; replace with actual kick animation asset
-
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        EffectsClient.FloatingText(
-            hrp.Position + Vector3.new(0, 2, -2),
-            "CHUTE!",
-            Color3.fromRGB(255, 200, 0),
-            1
-        )
-    end
-end
-
-print("[Client] EffectsClient initialized")
 
 return EffectsClient

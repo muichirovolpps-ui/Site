@@ -230,4 +230,17 @@ task.spawn(function()
     end
 end)
 
-print("[Client] MainClient initialized for " .. player.Name)
+------------------------------------------------------------
+-- INITIALIZE V2 SYSTEMS
+------------------------------------------------------------
+local EffectsClient = require(script.Parent:WaitForChild("EffectsClient"))
+EffectsClient.Initialize()
+
+task.spawn(function()
+    local AdminUI = require(playerGui:WaitForChild("AdminUI", 10))
+    if AdminUI then
+        AdminUI.Initialize()
+    end
+end)
+
+print("[Client] MainClient v2.0 initialized for " .. player.Name)

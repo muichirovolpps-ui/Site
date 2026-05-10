@@ -27,6 +27,30 @@
       },
       "AntiExploit": {
         "$path": "ServerScriptService/AntiExploit.lua"
+      },
+      "AdminServer": {
+        "$path": "ServerScriptService/AdminServer.lua"
+      },
+      "MeteorEventServer": {
+        "$path": "ServerScriptService/MeteorEventServer.lua"
+      },
+      "DistanceKickServer": {
+        "$path": "ServerScriptService/DistanceKickServer.lua"
+      },
+      "BrainrotLevelServer": {
+        "$path": "ServerScriptService/BrainrotLevelServer.lua"
+      },
+      "SellerNPCServer": {
+        "$path": "ServerScriptService/SellerNPCServer.lua"
+      },
+      "PassiveIncomeServer": {
+        "$path": "ServerScriptService/PassiveIncomeServer.lua"
+      },
+      "VIPServer": {
+        "$path": "ServerScriptService/VIPServer.lua"
+      },
+      "AdvancedAntiCheat": {
+        "$path": "ServerScriptService/AdvancedAntiCheat.lua"
       }
     },
     "ReplicatedStorage": {
@@ -54,6 +78,9 @@
       "$className": "StarterGui",
       "MainUI": {
         "$path": "StarterGui/MainUI.lua"
+      },
+      "AdminUI": {
+        "$path": "StarterGui/AdminUI.lua"
       }
     },
     "StarterPlayer": {

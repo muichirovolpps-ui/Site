@@ -1,7 +1,8 @@
 --[[
-    RarityRoadBuilder.lua (Workspace/Builders)
-    Generates the long rarity road with 8 distinct zones.
+    RarityRoadBuilder.lua  v2.0 (Workspace/Builders)
+    Generates the long rarity road with 8 rarity zones + 16 extra arenas.
     Each zone has unique floor colors, atmosphere, particles, and Lucky Blocks.
+    Total: 24 zones with progressive difficulty and unique themes.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -41,7 +42,34 @@ function RarityRoadBuilder.Build(roadFolder)
         RarityRoadBuilder.BuildZone(zoneFolder, rarity, zoneCenter, zoneWidth, zoneLength, i)
     end
 
-    RarityRoadBuilder.BuildConnectors(roadFolder, startPos, #Config.Rarities, zoneLength, gap, zoneWidth)
+    -- Build 16 extra arenas after the rarity zones
+    local totalRarityZones = #Config.Rarities
+    if Config.Arenas then
+        for j, arena in ipairs(Config.Arenas) do
+            local arenaIndex = totalRarityZones + j
+            local zoneOffset = (arenaIndex - 1) * (zoneLength + gap)
+            local zoneCenter = startPos + Vector3.new(0, 0, -zoneOffset)
+
+            local zoneFolder = Instance.new("Folder")
+            zoneFolder.Name = "Arena_" .. arena.Name
+            zoneFolder.Parent = roadFolder
+
+            local arenaAsRarity = {
+                Name = arena.Name,
+                DisplayName = arena.DisplayName,
+                Color = arena.Color,
+                FloorColor = arena.FloorColor,
+                RequiredStrength = arena.RequiredStrength,
+                MoneyMultiplier = arena.MoneyMultiplier,
+                BrainrotChance = 0.15,
+            }
+
+            RarityRoadBuilder.BuildZone(zoneFolder, arenaAsRarity, zoneCenter, zoneWidth, zoneLength, arenaIndex)
+        end
+    end
+
+    local totalZones = totalRarityZones + (Config.Arenas and #Config.Arenas or 0)
+    RarityRoadBuilder.BuildConnectors(roadFolder, startPos, totalZones, zoneLength, gap, zoneWidth)
 end
 
 function RarityRoadBuilder.BuildZone(folder, rarity, center, width, length, zoneIndex)

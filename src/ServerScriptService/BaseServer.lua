@@ -1,145 +1,271 @@
 --[[
-    BaseServer.lua (ServerScriptService)
-    Handles personal base system: storage, upgrades, slot expansion.
+    BaseServer.lua  v2.0
+    Personal base system: level 30 max, 5 bases per server.
+    Each level adds floors, storage, decorations, neon lights.
+    Upgrade terminal, display stands, teleporter.
 ]]
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local Config = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Config"))
+local Players = game:GetService("Players")
 
 local BaseServer = {}
 
-function BaseServer.Initialize(remotes, dataStore)
-    local storeRemote = remotes:WaitForChild("StoreBrainrot")
-    local removeRemote = remotes:WaitForChild("RemoveFromBase")
-    local upgradeRemote = remotes:WaitForChild("UpgradeBase")
-    local expandRemote = remotes:WaitForChild("ExpandBaseSlots")
-    local getBaseData = remotes:WaitForChild("GetBaseData")
+local Config
+local DataStoreManager
+local remotesFolder
 
-    storeRemote.OnServerEvent:Connect(function(player, inventoryIndex)
-        BaseServer.HandleStore(player, inventoryIndex, dataStore, remotes)
-    end)
+local activeBases = {}
 
-    removeRemote.OnServerEvent:Connect(function(player, storedIndex)
-        BaseServer.HandleRemove(player, storedIndex, dataStore, remotes)
-    end)
+function BaseServer.Initialize(config, dsManager, remotes)
+    Config = config
+    DataStoreManager = dsManager
+    remotesFolder = remotes
 
-    upgradeRemote.OnServerEvent:Connect(function(player, upgradeIndex)
-        BaseServer.HandleUpgrade(player, upgradeIndex, dataStore, remotes)
-    end)
+    local storeRemote = remotesFolder:FindFirstChild("StoreBrainrot")
+    if storeRemote then
+        storeRemote.OnServerEvent:Connect(function(player, inventoryIndex)
+            BaseServer.StoreBrainrot(player, inventoryIndex)
+        end)
+    end
 
-    expandRemote.OnServerEvent:Connect(function(player)
-        BaseServer.HandleExpand(player, dataStore, remotes)
-    end)
+    local removeRemote = remotesFolder:FindFirstChild("RemoveFromBase")
+    if removeRemote then
+        removeRemote.OnServerEvent:Connect(function(player, storageIndex)
+            BaseServer.RemoveFromBase(player, storageIndex)
+        end)
+    end
 
-    getBaseData.OnServerInvoke = function(player)
-        return BaseServer.GetBaseInfo(player, dataStore)
+    local upgradeRemote = remotesFolder:FindFirstChild("UpgradeBase")
+    if upgradeRemote then
+        upgradeRemote.OnServerEvent:Connect(function(player, upgradeType)
+            if upgradeType == "level" then
+                BaseServer.LevelUpBase(player)
+            else
+                BaseServer.PurchaseUpgrade(player, upgradeType)
+            end
+        end)
+    end
+
+    local expandRemote = remotesFolder:FindFirstChild("ExpandBaseSlots")
+    if expandRemote then
+        expandRemote.OnServerEvent:Connect(function(player)
+            BaseServer.ExpandSlots(player)
+        end)
     end
 end
 
-function BaseServer.HandleStore(player, inventoryIndex, dataStore, remotes)
-    if type(inventoryIndex) ~= "number" then return end
-    inventoryIndex = math.floor(inventoryIndex)
-
-    local success = dataStore.StoreBrainrotInBase(player, inventoryIndex)
-    if success then
-        remotes:WaitForChild("ShowNotification"):FireClient(player, "Brainrot armazenado na base!", "success")
-        remotes:WaitForChild("SyncBaseData"):FireClient(player, BaseServer.GetBaseInfo(player, dataStore))
-        remotes:WaitForChild("SyncInventory"):FireClient(player, dataStore.GetData(player).Inventory)
-    else
-        remotes:WaitForChild("ShowNotification"):FireClient(player, "Base cheia! Expanda seus slots.", "error")
-    end
+function BaseServer.GetBaseCount()
+    local count = 0
+    for _ in pairs(activeBases) do count = count + 1 end
+    return count
 end
 
-function BaseServer.HandleRemove(player, storedIndex, dataStore, remotes)
-    if type(storedIndex) ~= "number" then return end
-    storedIndex = math.floor(storedIndex)
-
-    local success = dataStore.RemoveFromBase(player, storedIndex)
-    if success then
-        remotes:WaitForChild("ShowNotification"):FireClient(player, "Brainrot removido da base!", "success")
-        remotes:WaitForChild("SyncBaseData"):FireClient(player, BaseServer.GetBaseInfo(player, dataStore))
-        remotes:WaitForChild("SyncInventory"):FireClient(player, dataStore.GetData(player).Inventory)
-    end
+function BaseServer.CanClaimBase(player)
+    if activeBases[player.UserId] then return true end
+    return BaseServer.GetBaseCount() < Config.MAX_BASES_PER_SERVER
 end
 
-function BaseServer.HandleUpgrade(player, upgradeIndex, dataStore, remotes)
-    if type(upgradeIndex) ~= "number" then return end
-    upgradeIndex = math.floor(upgradeIndex)
+function BaseServer.ClaimBase(player)
+    if not BaseServer.CanClaimBase(player) then
+        local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+        if notifyRemote then
+            notifyRemote:FireClient(player, "error", "Servidor cheio! Max " .. Config.MAX_BASES_PER_SERVER .. " bases.")
+        end
+        return false
+    end
 
-    local upgrade = Config.Base.Upgrades[upgradeIndex]
-    if not upgrade then return end
+    activeBases[player.UserId] = true
+    return true
+end
 
-    local data = dataStore.GetData(player)
+function BaseServer.ReleaseBase(player)
+    activeBases[player.UserId] = nil
+end
+
+function BaseServer.GetBaseLevel(player)
+    local data = DataStoreManager:GetData(player)
+    if not data then return 1 end
+    return data.BaseLevel or 1
+end
+
+function BaseServer.GetMaxSlots(player)
+    local data = DataStoreManager:GetData(player)
+    if not data then return Config.Base.StartingSlots end
+    local level = data.BaseLevel or 1
+    return Config.Base.StartingSlots + ((level - 1) * Config.Base.SlotsPerLevel)
+end
+
+function BaseServer.LevelUpBase(player)
+    local data = DataStoreManager:GetData(player)
     if not data then return end
 
-    if data.BaseUpgrades[tostring(upgradeIndex)] then
-        remotes:WaitForChild("ShowNotification"):FireClient(player, "Ja comprado!", "error")
+    local currentLevel = data.BaseLevel or 1
+
+    if currentLevel >= Config.Base.MaxLevel then
+        local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+        if notifyRemote then
+            notifyRemote:FireClient(player, "error", "Base ja esta no nivel maximo!")
+        end
         return
     end
 
-    if data.Money < upgrade.Cost then
-        remotes:WaitForChild("ShowNotification"):FireClient(player, "Dinheiro insuficiente!", "error")
+    local cost = Config.Base.LevelCosts[currentLevel]
+    if not cost then return end
+
+    if (data.Money or 0) < cost then
+        local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+        if notifyRemote then
+            notifyRemote:FireClient(player, "error", "Dinheiro insuficiente! Precisa: $" .. cost)
+        end
         return
     end
 
-    dataStore.IncrementValue(player, "Money", -upgrade.Cost)
-    data.BaseUpgrades[tostring(upgradeIndex)] = true
+    data.Money = data.Money - cost
+    data.BaseLevel = currentLevel + 1
 
-    remotes:WaitForChild("ShowNotification"):FireClient(player,
-        "Comprou " .. upgrade.Name .. "!", "success")
+    local maxSlots = BaseServer.GetMaxSlots(player)
 
-    remotes:WaitForChild("SyncBaseData"):FireClient(player, BaseServer.GetBaseInfo(player, dataStore))
-    remotes:WaitForChild("UpdatePlayerStats"):FireClient(player, {
-        Money = dataStore.GetData(player).Money,
-    })
+    local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+    if notifyRemote then
+        notifyRemote:FireClient(player, "success",
+            "Base subiu para nivel " .. data.BaseLevel .. "! Slots: " .. maxSlots)
+    end
+
+    local syncRemote = remotesFolder:FindFirstChild("SyncBaseData")
+    if syncRemote then
+        syncRemote:FireClient(player, {
+            Level = data.BaseLevel,
+            MaxSlots = maxSlots,
+            StoredBrainrots = data.StoredBrainrots,
+            Upgrades = data.BaseUpgrades,
+        })
+    end
 end
 
-function BaseServer.HandleExpand(player, dataStore, remotes)
-    local data = dataStore.GetData(player)
+function BaseServer.StoreBrainrot(player, inventoryIndex)
+    local data = DataStoreManager:GetData(player)
     if not data then return end
 
-    if data.BaseSlots >= Config.Base.MaxSlots then
-        remotes:WaitForChild("ShowNotification"):FireClient(player, "Slots no maximo!", "error")
+    inventoryIndex = tonumber(inventoryIndex)
+    if not inventoryIndex or inventoryIndex < 1 then return end
+    if not data.Inventory or inventoryIndex > #data.Inventory then return end
+
+    if not data.StoredBrainrots then data.StoredBrainrots = {} end
+
+    local maxSlots = BaseServer.GetMaxSlots(player)
+    if #data.StoredBrainrots >= maxSlots then
+        local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+        if notifyRemote then
+            notifyRemote:FireClient(player, "error", "Base cheia! Max " .. maxSlots .. " slots.")
+        end
         return
     end
 
-    local expansions = data.BaseSlots - Config.Base.StartingSlots
-    local cost = math.floor(Config.Base.SlotUpgradeCost * (Config.Base.SlotCostMultiplier ^ expansions))
+    local item = table.remove(data.Inventory, inventoryIndex)
+    table.insert(data.StoredBrainrots, item)
 
-    if data.Money < cost then
-        remotes:WaitForChild("ShowNotification"):FireClient(player,
-            "Precisa de $" .. cost .. " para expandir!", "error")
-        return
+    local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+    if notifyRemote then
+        notifyRemote:FireClient(player, "success", item.Name .. " armazenado na base!")
     end
 
-    dataStore.IncrementValue(player, "Money", -cost)
-    dataStore.SetValue(player, "BaseSlots", data.BaseSlots + 4)
-
-    remotes:WaitForChild("ShowNotification"):FireClient(player,
-        "Base expandida! Agora tem " .. (data.BaseSlots + 4) .. " slots!", "success")
-
-    remotes:WaitForChild("SyncBaseData"):FireClient(player, BaseServer.GetBaseInfo(player, dataStore))
-    remotes:WaitForChild("UpdatePlayerStats"):FireClient(player, {
-        Money = dataStore.GetData(player).Money,
-    })
+    local syncRemote = remotesFolder:FindFirstChild("SyncBaseData")
+    if syncRemote then
+        syncRemote:FireClient(player, {
+            Level = data.BaseLevel or 1,
+            MaxSlots = maxSlots,
+            StoredBrainrots = data.StoredBrainrots,
+            Upgrades = data.BaseUpgrades,
+        })
+    end
 end
 
-function BaseServer.GetBaseInfo(player, dataStore)
-    local data = dataStore.GetData(player)
-    if not data then return {} end
+function BaseServer.RemoveFromBase(player, storageIndex)
+    local data = DataStoreManager:GetData(player)
+    if not data then return end
 
-    local expansions = data.BaseSlots - Config.Base.StartingSlots
-    local nextExpandCost = math.floor(Config.Base.SlotUpgradeCost * (Config.Base.SlotCostMultiplier ^ expansions))
+    storageIndex = tonumber(storageIndex)
+    if not storageIndex or storageIndex < 1 then return end
+    if not data.StoredBrainrots or storageIndex > #data.StoredBrainrots then return end
 
-    return {
-        Slots = data.BaseSlots,
-        MaxSlots = Config.Base.MaxSlots,
-        StoredBrainrots = data.StoredBrainrots,
-        Upgrades = data.BaseUpgrades,
-        AvailableUpgrades = Config.Base.Upgrades,
-        NextExpandCost = nextExpandCost,
-    }
+    local item = table.remove(data.StoredBrainrots, storageIndex)
+    if not data.Inventory then data.Inventory = {} end
+    table.insert(data.Inventory, item)
+
+    local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+    if notifyRemote then
+        notifyRemote:FireClient(player, "success", item.Name .. " movido para inventario!")
+    end
+end
+
+function BaseServer.PurchaseUpgrade(player, upgradeName)
+    local data = DataStoreManager:GetData(player)
+    if not data then return end
+
+    local upgradeConfig = nil
+    for _, upg in ipairs(Config.Base.Upgrades) do
+        if upg.Name == upgradeName then
+            upgradeConfig = upg
+            break
+        end
+    end
+
+    if not upgradeConfig then
+        local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+        if notifyRemote then
+            notifyRemote:FireClient(player, "error", "Upgrade invalido!")
+        end
+        return
+    end
+
+    local baseLevel = data.BaseLevel or 1
+    if baseLevel < (upgradeConfig.MinLevel or 1) then
+        local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+        if notifyRemote then
+            notifyRemote:FireClient(player, "error", "Base precisa estar no nivel " .. upgradeConfig.MinLevel .. "!")
+        end
+        return
+    end
+
+    if not data.BaseUpgrades then data.BaseUpgrades = {} end
+    if data.BaseUpgrades[upgradeName] then
+        local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+        if notifyRemote then
+            notifyRemote:FireClient(player, "error", "Upgrade ja comprado!")
+        end
+        return
+    end
+
+    if (data.Money or 0) < upgradeConfig.Cost then
+        local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+        if notifyRemote then
+            notifyRemote:FireClient(player, "error", "Dinheiro insuficiente! Precisa: $" .. upgradeConfig.Cost)
+        end
+        return
+    end
+
+    data.Money = data.Money - upgradeConfig.Cost
+    data.BaseUpgrades[upgradeName] = true
+
+    local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+    if notifyRemote then
+        notifyRemote:FireClient(player, "success", "Upgrade '" .. upgradeName .. "' comprado!")
+    end
+end
+
+function BaseServer.ExpandSlots(player)
+    local data = DataStoreManager:GetData(player)
+    if not data then return end
+
+    local maxSlots = BaseServer.GetMaxSlots(player)
+    local currentSlots = data.BaseSlots or Config.Base.StartingSlots
+
+    if currentSlots >= maxSlots then
+        local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+        if notifyRemote then
+            notifyRemote:FireClient(player, "error", "Ja atingiu o maximo de slots para este nivel! Suba de nivel para mais.")
+        end
+        return
+    end
 end
 
 return BaseServer

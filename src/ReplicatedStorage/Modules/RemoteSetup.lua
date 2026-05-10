@@ -1,7 +1,8 @@
 --[[
-    RemoteSetup.lua (ReplicatedStorage/Modules)
+    RemoteSetup.lua  v2.0 (ReplicatedStorage/Modules)
     Creates all RemoteEvents and RemoteFunctions used by the game.
     Run once on the server during initialization.
+    Updated with v2 remotes: Admin, Meteor, Distance, Brainrot Levels, VIP, etc.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -31,6 +32,21 @@ local REMOTE_EVENTS = {
     "PurchaseSuccess",
     "SyncInventory",
     "SyncBaseData",
+    -- v2 remotes
+    "AdminCommand",
+    "AdminResponse",
+    "PerformKick",
+    "KickResult",
+    "MeteorEvent",
+    "MeteorWarning",
+    "UpgradeBrainrot",
+    "BuyFromSeller",
+    "SellerVoiceLine",
+    "PassiveIncomeUpdate",
+    "OfflineReward",
+    "ActivateServerBoost",
+    "ServerBoostUpdate",
+    "AntiCheatLog",
 }
 
 local REMOTE_FUNCTIONS = {
@@ -40,6 +56,11 @@ local REMOTE_FUNCTIONS = {
     "GetDiscoveredBrainrots",
     "GetShopData",
     "GetLeaderboardData",
+    -- v2 functions
+    "IsAdmin",
+    "GetBrainrotLevel",
+    "GetSellerDeals",
+    "GetServerBoosts",
 }
 
 function RemoteSetup.Initialize()

@@ -1,37 +1,32 @@
 --[[
-    DataStoreManager.lua (ServerScriptService)
-    Handles all player data saving/loading with retry and auto-save.
-    Uses ProfileService-style patterns for reliability.
+    DataStoreManager.lua  v2.0
+    Handles all player data persistence with DataStore.
+    Auto-save, data reconciliation, retry logic.
+    Updated with v2 fields: BaseLevel, BrainrotLevels, LastOnlineTime, etc.
 ]]
 
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Config = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Config"))
-
 local DataStoreManager = {}
 DataStoreManager.__index = DataStoreManager
 
-local DATA_STORE_NAME = "TreineLuckyBlockData_v1"
 local MAX_RETRIES = 3
-local RETRY_DELAY = 1
-
-local playerDataStore = DataStoreService:GetDataStore(DATA_STORE_NAME)
-local playerDataCache = {}
+local dataStore
 
 local DEFAULT_DATA = {
-    Money = Config.STARTING_MONEY,
-    Strength = Config.STARTING_STRENGTH,
-    Speed = Config.STARTING_SPEED,
-    Luck = Config.STARTING_LUCK,
-    Rebirths = Config.STARTING_REBIRTHS,
+    Money = 100,
+    Strength = 1,
+    Speed = 1,
+    Luck = 1,
+    Rebirths = 0,
     EquippedWeight = 1,
     Inventory = {},
     EquippedBrainrot = "",
     DiscoveredBrainrots = {},
-    BaseSlots = Config.Base.StartingSlots,
+    BaseSlots = 4,
+    BaseLevel = 1,
     BaseUpgrades = {},
     StoredBrainrots = {},
     SpeedUpgradesBought = {},
@@ -40,40 +35,54 @@ local DEFAULT_DATA = {
     TotalPerfects = 0,
     PlayTime = 0,
     Gamepasses = {},
+    LastOnlineTime = 0,
+    TotalDistance = 0,
+    BestDistance = 0,
 }
 
-local function deepCopyDefault()
-    local copy = {}
-    for k, v in pairs(DEFAULT_DATA) do
-        if type(v) == "table" then
-            copy[k] = {}
-            for kk, vv in pairs(v) do
-                copy[kk] = vv
-            end
-        else
-            copy[k] = v
-        end
+function DataStoreManager.new(config)
+    local self = setmetatable({}, DataStoreManager)
+    self.Config = config
+    self.PlayerData = {}
+    self.SaveInterval = config.AUTO_SAVE_INTERVAL or 60
+
+    local success, store = pcall(function()
+        return DataStoreService:GetDataStore("TreineParaChutar_v2")
+    end)
+
+    if success then
+        dataStore = store
+    else
+        warn("[DataStore] Failed to get DataStore: " .. tostring(store))
     end
-    return copy
+
+    self:StartAutoSave()
+    return self
 end
 
-local function reconcileData(saved)
-    local data = deepCopyDefault()
-    if saved then
-        for k, v in pairs(saved) do
-            data[k] = v
+function DataStoreManager:Reconcile(data)
+    for key, defaultValue in pairs(DEFAULT_DATA) do
+        if data[key] == nil then
+            if type(defaultValue) == "table" then
+                data[key] = {}
+            else
+                data[key] = defaultValue
+            end
         end
     end
     return data
 end
 
-function DataStoreManager.LoadData(player)
-    local key = "Player_" .. player.UserId
-    local data = nil
+function DataStoreManager:LoadData(player)
+    if not dataStore then
+        self.PlayerData[player.UserId] = self:Reconcile({})
+        return self.PlayerData[player.UserId]
+    end
 
+    local data
     for attempt = 1, MAX_RETRIES do
         local success, result = pcall(function()
-            return playerDataStore:GetAsync(key)
+            return dataStore:GetAsync("Player_" .. player.UserId)
         end)
 
         if success then
@@ -81,170 +90,144 @@ function DataStoreManager.LoadData(player)
             break
         else
             warn("[DataStore] Load attempt " .. attempt .. " failed for " .. player.Name .. ": " .. tostring(result))
-            if attempt < MAX_RETRIES then
-                task.wait(RETRY_DELAY)
-            end
+            if attempt < MAX_RETRIES then wait(1) end
         end
     end
 
-    local playerData = reconcileData(data)
-    playerDataCache[player.UserId] = playerData
+    if not data then
+        data = {}
+    end
 
-    local leaderstats = Instance.new("Folder")
-    leaderstats.Name = "leaderstats"
-    leaderstats.Parent = player
+    data = self:Reconcile(data)
+    self.PlayerData[player.UserId] = data
 
-    local moneyStat = Instance.new("IntValue")
-    moneyStat.Name = "Money"
-    moneyStat.Value = playerData.Money
-    moneyStat.Parent = leaderstats
+    self:CreateLeaderStats(player, data)
 
-    local strengthStat = Instance.new("IntValue")
-    strengthStat.Name = "Strength"
-    strengthStat.Value = playerData.Strength
-    strengthStat.Parent = leaderstats
-
-    local rebirthStat = Instance.new("IntValue")
-    rebirthStat.Name = "Rebirths"
-    rebirthStat.Value = playerData.Rebirths
-    rebirthStat.Parent = leaderstats
-
-    return playerData
+    return data
 end
 
-function DataStoreManager.SaveData(player)
-    local data = playerDataCache[player.UserId]
-    if not data then return false end
+function DataStoreManager:SaveData(player)
+    if not dataStore then return false end
 
-    local key = "Player_" .. player.UserId
+    local data = self.PlayerData[player.UserId]
+    if not data then return false end
 
     for attempt = 1, MAX_RETRIES do
         local success, err = pcall(function()
-            playerDataStore:SetAsync(key, data)
+            dataStore:SetAsync("Player_" .. player.UserId, data)
         end)
 
         if success then
             return true
         else
             warn("[DataStore] Save attempt " .. attempt .. " failed for " .. player.Name .. ": " .. tostring(err))
-            if attempt < MAX_RETRIES then
-                task.wait(RETRY_DELAY)
-            end
+            if attempt < MAX_RETRIES then wait(1) end
         end
     end
 
     return false
 end
 
-function DataStoreManager.GetData(player)
-    return playerDataCache[player.UserId]
+function DataStoreManager:GetData(player)
+    return self.PlayerData[player.UserId]
 end
 
-function DataStoreManager.SetValue(player, key, value)
-    local data = playerDataCache[player.UserId]
+function DataStoreManager:RemoveData(player)
+    local data = self.PlayerData[player.UserId]
+    if data then
+        data.LastOnlineTime = os.time()
+        self:SaveData(player)
+    end
+    self.PlayerData[player.UserId] = nil
+end
+
+function DataStoreManager:CreateLeaderStats(player, data)
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if not leaderstats then
+        leaderstats = Instance.new("Folder")
+        leaderstats.Name = "leaderstats"
+        leaderstats.Parent = player
+    end
+
+    local money = leaderstats:FindFirstChild("Money")
+    if not money then
+        money = Instance.new("NumberValue")
+        money.Name = "Money"
+        money.Parent = leaderstats
+    end
+    money.Value = data.Money or 0
+
+    local strength = leaderstats:FindFirstChild("Strength")
+    if not strength then
+        strength = Instance.new("NumberValue")
+        strength.Name = "Strength"
+        strength.Parent = leaderstats
+    end
+    strength.Value = data.Strength or 0
+
+    local rebirths = leaderstats:FindFirstChild("Rebirths")
+    if not rebirths then
+        rebirths = Instance.new("NumberValue")
+        rebirths.Name = "Rebirths"
+        rebirths.Parent = leaderstats
+    end
+    rebirths.Value = data.Rebirths or 0
+end
+
+function DataStoreManager:UpdateLeaderStats(player)
+    local data = self.PlayerData[player.UserId]
     if not data then return end
-    data[key] = value
 
     local leaderstats = player:FindFirstChild("leaderstats")
-    if leaderstats then
-        local stat = leaderstats:FindFirstChild(key)
-        if stat then
-            stat.Value = value
-        end
-    end
+    if not leaderstats then return end
+
+    local money = leaderstats:FindFirstChild("Money")
+    if money then money.Value = data.Money or 0 end
+
+    local strength = leaderstats:FindFirstChild("Strength")
+    if strength then strength.Value = data.Strength or 0 end
+
+    local rebirths = leaderstats:FindFirstChild("Rebirths")
+    if rebirths then rebirths.Value = data.Rebirths or 0 end
 end
 
-function DataStoreManager.IncrementValue(player, key, amount)
-    local data = playerDataCache[player.UserId]
-    if not data then return end
-    data[key] = (data[key] or 0) + amount
-
-    local leaderstats = player:FindFirstChild("leaderstats")
-    if leaderstats then
-        local stat = leaderstats:FindFirstChild(key)
-        if stat then
-            stat.Value = data[key]
-        end
-    end
-
-    return data[key]
-end
-
-function DataStoreManager.AddToInventory(player, brainrotName, rarity, mutation)
-    local data = playerDataCache[player.UserId]
-    if not data then return end
-
-    local entry = {
-        Name = brainrotName,
-        Rarity = rarity,
-        Mutation = mutation or "None",
-        ObtainedAt = os.time(),
-    }
-    table.insert(data.Inventory, entry)
-
-    if not data.DiscoveredBrainrots[rarity] then
-        data.DiscoveredBrainrots[rarity] = {}
-    end
-    data.DiscoveredBrainrots[rarity][brainrotName] = true
-
-    return entry
-end
-
-function DataStoreManager.StoreBrainrotInBase(player, inventoryIndex)
-    local data = playerDataCache[player.UserId]
-    if not data then return false end
-    if #data.StoredBrainrots >= data.BaseSlots then return false end
-
-    local item = data.Inventory[inventoryIndex]
-    if not item then return false end
-
-    table.remove(data.Inventory, inventoryIndex)
-    table.insert(data.StoredBrainrots, item)
-    return true
-end
-
-function DataStoreManager.RemoveFromBase(player, storedIndex)
-    local data = playerDataCache[player.UserId]
-    if not data then return false end
-
-    local item = data.StoredBrainrots[storedIndex]
-    if not item then return false end
-
-    table.remove(data.StoredBrainrots, storedIndex)
-    table.insert(data.Inventory, item)
-    return true
-end
-
-function DataStoreManager.ClearPlayerCache(player)
-    playerDataCache[player.UserId] = nil
-end
-
-function DataStoreManager.Initialize()
-    Players.PlayerAdded:Connect(function(player)
-        DataStoreManager.LoadData(player)
-    end)
-
-    Players.PlayerRemoving:Connect(function(player)
-        DataStoreManager.SaveData(player)
-        DataStoreManager.ClearPlayerCache(player)
-    end)
-
-    task.spawn(function()
+function DataStoreManager:StartAutoSave()
+    spawn(function()
         while true do
-            task.wait(Config.AUTO_SAVE_INTERVAL)
+            wait(self.SaveInterval)
             for _, player in ipairs(Players:GetPlayers()) do
-                task.spawn(function()
-                    DataStoreManager.SaveData(player)
-                end)
+                self:UpdateLeaderStats(player)
+                self:SaveData(player)
             end
         end
     end)
+end
 
-    game:BindToClose(function()
-        for _, player in ipairs(Players:GetPlayers()) do
-            DataStoreManager.SaveData(player)
+function DataStoreManager:SaveAllAndClose()
+    for _, player in ipairs(Players:GetPlayers()) do
+        local data = self.PlayerData[player.UserId]
+        if data then
+            data.LastOnlineTime = os.time()
         end
-    end)
+        self:SaveData(player)
+    end
+end
+
+function DataStoreManager:AddToInventory(player, brainrotData)
+    local data = self.PlayerData[player.UserId]
+    if not data then return false end
+    if not data.Inventory then data.Inventory = {} end
+
+    table.insert(data.Inventory, brainrotData)
+    return true
+end
+
+function DataStoreManager:RemoveFromInventory(player, index)
+    local data = self.PlayerData[player.UserId]
+    if not data or not data.Inventory then return nil end
+    if index < 1 or index > #data.Inventory then return nil end
+
+    return table.remove(data.Inventory, index)
 end
 
 return DataStoreManager

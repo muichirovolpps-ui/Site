@@ -1,73 +1,119 @@
 --[[
-    RebirthServer.lua (ServerScriptService)
-    Handles rebirth logic: requirements, reset, and permanent bonuses.
+    RebirthServer.lua  v2.0
+    Reworked rebirth: max 30, requires BOTH strength AND money.
+    Gives permanent money multiplier, strength bonus, luck bonus.
+    Unlocks better arenas and brainrots.
 ]]
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local Config = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Config"))
 
 local RebirthServer = {}
 
-function RebirthServer.Initialize(remotes, dataStore)
-    local rebirthRemote = remotes:WaitForChild("RequestRebirth")
+local Config
+local DataStoreManager
+local remotesFolder
 
-    rebirthRemote.OnServerEvent:Connect(function(player)
-        RebirthServer.HandleRebirth(player, dataStore, remotes)
-    end)
+function RebirthServer.Initialize(config, dsManager, remotes)
+    Config = config
+    DataStoreManager = dsManager
+    remotesFolder = remotes
+
+    local rebirthRemote = remotesFolder:FindFirstChild("RequestRebirth")
+    if rebirthRemote then
+        rebirthRemote.OnServerEvent:Connect(function(player)
+            RebirthServer.ProcessRebirth(player)
+        end)
+    end
 end
 
-function RebirthServer.GetRequirement(currentRebirths)
-    return math.floor(Config.Rebirth.BaseRequirement * (Config.Rebirth.RequirementMultiplier ^ currentRebirths))
+function RebirthServer.GetRequirements(rebirthLevel)
+    local reqs = Config.Rebirth.Requirements
+    local idx = math.min(rebirthLevel + 1, #reqs)
+    return reqs[idx]
 end
 
-function RebirthServer.HandleRebirth(player, dataStore, remotes)
-    local data = dataStore.GetData(player)
+function RebirthServer.CanRebirth(player)
+    local data = DataStoreManager:GetData(player)
+    if not data then return false, "Dados nao carregados." end
+
+    local currentRebirths = data.Rebirths or 0
+    if currentRebirths >= Config.Rebirth.MaxRebirths then
+        return false, "Ja atingiu o rebirth maximo (" .. Config.Rebirth.MaxRebirths .. ")!"
+    end
+
+    local req = RebirthServer.GetRequirements(currentRebirths)
+    if not req then return false, "Erro nos requisitos." end
+
+    if (data.Strength or 0) < req.Strength then
+        return false, "Forca insuficiente! Precisa: " .. req.Strength
+    end
+
+    if (data.Money or 0) < req.Money then
+        return false, "Dinheiro insuficiente! Precisa: $" .. req.Money
+    end
+
+    return true, ""
+end
+
+function RebirthServer.ProcessRebirth(player)
+    local canRebirth, reason = RebirthServer.CanRebirth(player)
+
+    if not canRebirth then
+        local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+        if notifyRemote then
+            notifyRemote:FireClient(player, "error", reason)
+        end
+        return
+    end
+
+    local data = DataStoreManager:GetData(player)
     if not data then return end
 
-    if data.Rebirths >= Config.Rebirth.MaxRebirths then
-        remotes:WaitForChild("ShowNotification"):FireClient(player, "Rebirth maximo atingido!", "error")
-        return
-    end
+    local currentRebirths = data.Rebirths or 0
+    local req = RebirthServer.GetRequirements(currentRebirths)
 
-    local requirement = RebirthServer.GetRequirement(data.Rebirths)
-
-    if data.Strength < requirement then
-        remotes:WaitForChild("ShowNotification"):FireClient(player,
-            "Precisa de " .. requirement .. " de forca para rebirth!", "error")
-        return
-    end
-
-    local newRebirths = data.Rebirths + 1
-
-    dataStore.SetValue(player, "Money", Config.STARTING_MONEY)
-    dataStore.SetValue(player, "Strength", Config.STARTING_STRENGTH)
-    dataStore.SetValue(player, "Speed", Config.STARTING_SPEED)
-    dataStore.SetValue(player, "Luck", Config.STARTING_LUCK + (newRebirths * Config.Rebirth.LuckBonus))
-    dataStore.SetValue(player, "Rebirths", newRebirths)
-    dataStore.SetValue(player, "EquippedWeight", 1)
+    data.Money = Config.STARTING_MONEY
+    data.Strength = Config.STARTING_STRENGTH
+    data.Speed = Config.STARTING_SPEED
+    data.Rebirths = currentRebirths + 1
+    data.EquippedWeight = 1
     data.SpeedUpgradesBought = {}
+    data.LuckBoosts = {}
 
-    remotes:WaitForChild("RebirthSuccess"):FireClient(player, {
-        Rebirths = newRebirths,
-        Multiplier = 1 + (newRebirths * Config.Rebirth.RewardMultiplier),
-        LuckBonus = newRebirths * Config.Rebirth.LuckBonus,
-        NextRequirement = RebirthServer.GetRequirement(newRebirths),
-    })
+    data.Luck = Config.STARTING_LUCK + (data.Rebirths * Config.Rebirth.LuckBonusPerRebirth)
 
-    remotes:WaitForChild("ShowNotification"):FireClient(player,
-        "REBIRTH #" .. newRebirths .. "! Multiplicador: " ..
-        string.format("%.1fx", 1 + (newRebirths * Config.Rebirth.RewardMultiplier)), "success")
+    local notifyRemote = remotesFolder:FindFirstChild("ShowNotification")
+    if notifyRemote then
+        notifyRemote:FireClient(player, "success",
+            "REBIRTH " .. data.Rebirths .. "! +" ..
+            Config.Rebirth.MoneyMultiplierPerRebirth .. "x Money, +" ..
+            (Config.Rebirth.StrengthBonusPerRebirth * 100) .. "% Forca, +" ..
+            Config.Rebirth.LuckBonusPerRebirth .. " Sorte!")
+    end
 
-    remotes:WaitForChild("PlayEffect"):FireClient(player, "RebirthExplosion", {})
+    local rebirthSuccessRemote = remotesFolder:FindFirstChild("RebirthSuccess")
+    if rebirthSuccessRemote then
+        rebirthSuccessRemote:FireClient(player, data.Rebirths)
+    end
 
-    remotes:WaitForChild("UpdatePlayerStats"):FireClient(player, {
-        Money = Config.STARTING_MONEY,
-        Strength = Config.STARTING_STRENGTH,
-        Speed = Config.STARTING_SPEED,
-        Luck = Config.STARTING_LUCK + (newRebirths * Config.Rebirth.LuckBonus),
-        Rebirths = newRebirths,
-    })
+    local statsRemote = remotesFolder:FindFirstChild("UpdatePlayerStats")
+    if statsRemote then
+        statsRemote:FireClient(player, {
+            Money = data.Money,
+            Strength = data.Strength,
+            Speed = data.Speed,
+            Luck = data.Luck,
+            Rebirths = data.Rebirths,
+        })
+    end
+end
+
+function RebirthServer.GetMoneyMultiplier(data)
+    local rebirths = data.Rebirths or 0
+    return 1 + (rebirths * Config.Rebirth.MoneyMultiplierPerRebirth)
+end
+
+function RebirthServer.GetStrengthMultiplier(data)
+    local rebirths = data.Rebirths or 0
+    return 1 + (rebirths * Config.Rebirth.StrengthBonusPerRebirth)
 end
 
 return RebirthServer

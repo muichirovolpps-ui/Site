@@ -1269,4 +1269,288 @@ _G.ToggleBaseUpgradeUI = function()
     panels["BaseUpgradePanel"].Visible = true
 end
 
-print("[Client] MainUI initialized")
+------------------------------------------------------------
+-- KICK BUTTON (v2 — large rectangular animated button)
+------------------------------------------------------------
+local kickButton = Instance.new("TextButton")
+kickButton.Name = "KickButton"
+kickButton.Size = UDim2.new(0, 200, 0, 70)
+kickButton.Position = UDim2.new(0.5, -100, 1, -180)
+kickButton.BackgroundColor3 = Color3.fromRGB(255, 80, 50)
+kickButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+kickButton.Text = "CHUTAR!"
+kickButton.Font = Enum.Font.GothamBold
+kickButton.TextSize = 28
+kickButton.Parent = screenGui
+
+local kickCorner = Instance.new("UICorner")
+kickCorner.CornerRadius = UDim.new(0, 16)
+kickCorner.Parent = kickButton
+
+local kickStroke = Instance.new("UIStroke")
+kickStroke.Color = Color3.fromRGB(255, 150, 100)
+kickStroke.Thickness = 3
+kickStroke.Parent = kickButton
+
+local kickGlow = Instance.new("UIGradient")
+kickGlow.Color = ColorSequence.new(Color3.fromRGB(255, 120, 50), Color3.fromRGB(255, 50, 50))
+kickGlow.Rotation = 90
+kickGlow.Parent = kickButton
+
+kickButton.MouseEnter:Connect(function()
+    TweenService:Create(kickButton, TweenInfo.new(0.15), {
+        Size = UDim2.new(0, 220, 0, 78),
+        Position = UDim2.new(0.5, -110, 1, -184),
+    }):Play()
+end)
+
+kickButton.MouseLeave:Connect(function()
+    TweenService:Create(kickButton, TweenInfo.new(0.15), {
+        Size = UDim2.new(0, 200, 0, 70),
+        Position = UDim2.new(0.5, -100, 1, -180),
+    }):Play()
+end)
+
+kickButton.MouseButton1Click:Connect(function()
+    remotesFolder:WaitForChild("PerformKick"):FireServer(0.5)
+end)
+
+------------------------------------------------------------
+-- PROGRESSION BAR (shows all player heads + distance)
+------------------------------------------------------------
+local progressBarFrame = createFrame({
+    Name = "ProgressionBar",
+    Size = UDim2.new(0.6, 0, 0, 30),
+    Position = UDim2.new(0.2, 0, 0, 5),
+    Color = Color3.fromRGB(20, 20, 35),
+    Corner = UDim.new(0, 8),
+    Stroke = Config.UI.AccentColor,
+    Parent = screenGui,
+})
+
+local progressFill = createFrame({
+    Name = "Fill",
+    Size = UDim2.new(0, 0, 1, -4),
+    Position = UDim2.new(0, 2, 0, 2),
+    Color = Config.UI.AccentColor,
+    Corner = UDim.new(0, 6),
+    Parent = progressBarFrame,
+})
+
+local progressLabel = createLabel({
+    Name = "Label",
+    Size = UDim2.new(1, 0, 1, 0),
+    Text = "Distancia: 0m",
+    Font = Config.UI.FontAccent,
+    TextColor = Color3.fromRGB(255, 255, 255),
+    Parent = progressBarFrame,
+})
+
+------------------------------------------------------------
+-- TOP CENTER REWARD NOTIFICATIONS
+------------------------------------------------------------
+local rewardNotifFrame = createFrame({
+    Name = "RewardNotifications",
+    Size = UDim2.new(0, 350, 0, 200),
+    Position = UDim2.new(0.5, -175, 0, 40),
+    Color = Color3.fromRGB(0, 0, 0),
+    Transparency = 1,
+    Parent = screenGui,
+})
+
+local rewardNotifLayout = Instance.new("UIListLayout")
+rewardNotifLayout.SortOrder = Enum.SortOrder.LayoutOrder
+rewardNotifLayout.Padding = UDim.new(0, 4)
+rewardNotifLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+rewardNotifLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+rewardNotifLayout.Parent = rewardNotifFrame
+
+local function showRewardNotification(text, color)
+    local notif = createFrame({
+        Name = "RewardNotif",
+        Size = UDim2.new(1, 0, 0, 30),
+        Color = Color3.fromRGB(20, 20, 35),
+        Corner = UDim.new(0, 8),
+        Transparency = 0.2,
+        Parent = rewardNotifFrame,
+    })
+
+    local notifLabel = createLabel({
+        Name = "Text",
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = text,
+        TextColor = color or Color3.fromRGB(80, 255, 80),
+        Font = Config.UI.FontAccent,
+        Parent = notif,
+    })
+
+    spawn(function()
+        wait(3)
+        TweenService:Create(notif, TweenInfo.new(0.5), { BackgroundTransparency = 1 }):Play()
+        TweenService:Create(notifLabel, TweenInfo.new(0.5), { TextTransparency = 1 }):Play()
+        wait(0.6)
+        notif:Destroy()
+    end)
+end
+
+------------------------------------------------------------
+-- OFFLINE REWARD POPUP
+------------------------------------------------------------
+local function showOfflineReward(data)
+    local overlay = createFrame({
+        Name = "OfflineOverlay",
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        Color = Color3.fromRGB(0, 0, 0),
+        Transparency = 0.5,
+        Parent = screenGui,
+    })
+
+    local popup = createFrame({
+        Name = "OfflinePopup",
+        Size = UDim2.new(0, 350, 0, 250),
+        Position = UDim2.new(0.5, -175, 0.5, -125),
+        Color = Config.UI.PrimaryColor,
+        Corner = UDim.new(0, 16),
+        Stroke = Color3.fromRGB(80, 255, 80),
+        Parent = overlay,
+    })
+
+    createLabel({
+        Name = "Title",
+        Size = UDim2.new(1, 0, 0, 40),
+        Text = "RECOMPENSA OFFLINE",
+        Font = Config.UI.FontTitle,
+        TextColor = Color3.fromRGB(80, 255, 80),
+        Parent = popup,
+    })
+
+    local hours = data.Hours or 0
+    local minutes = data.Minutes or 0
+    createLabel({
+        Name = "Time",
+        Size = UDim2.new(1, 0, 0, 30),
+        Position = UDim2.new(0, 0, 0, 50),
+        Text = "Voce ficou offline por " .. hours .. "h " .. minutes .. "min",
+        Font = Config.UI.FontBody,
+        TextColor = Color3.fromRGB(200, 200, 220),
+        Parent = popup,
+    })
+
+    createLabel({
+        Name = "Money",
+        Size = UDim2.new(1, 0, 0, 50),
+        Position = UDim2.new(0, 0, 0, 100),
+        Text = "+$" .. Utils.FormatNumber(data.Money or 0),
+        Font = Config.UI.FontTitle,
+        TextColor = Color3.fromRGB(80, 255, 80),
+        Parent = popup,
+    })
+
+    local claimBtn = createButton({
+        Name = "Claim",
+        Size = UDim2.new(0, 150, 0, 45),
+        Position = UDim2.new(0.5, -75, 1, -60),
+        Text = "COLETAR",
+        Color = Color3.fromRGB(50, 200, 50),
+        Parent = popup,
+    })
+
+    claimBtn.MouseButton1Click:Connect(function()
+        TweenService:Create(overlay, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
+        TweenService:Create(popup, TweenInfo.new(0.3), { Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0) }):Play()
+        wait(0.4)
+        overlay:Destroy()
+    end)
+end
+
+------------------------------------------------------------
+-- METEOR WARNING BANNER
+------------------------------------------------------------
+local function showMeteorWarning()
+    local banner = createFrame({
+        Name = "MeteorBanner",
+        Size = UDim2.new(0.6, 0, 0, 50),
+        Position = UDim2.new(0.2, 0, 0.15, 0),
+        Color = Color3.fromRGB(200, 50, 0),
+        Corner = UDim.new(0, 12),
+        Stroke = Color3.fromRGB(255, 150, 0),
+        Parent = screenGui,
+    })
+
+    local bannerLabel = createLabel({
+        Name = "Text",
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = "CHUVA DE METEOROS! Corra para coletar!",
+        Font = Config.UI.FontTitle,
+        TextColor = Color3.fromRGB(255, 255, 255),
+        Parent = banner,
+    })
+
+    spawn(function()
+        for i = 1, 5 do
+            bannerLabel.TextTransparency = 0
+            wait(0.3)
+            bannerLabel.TextTransparency = 0.4
+            wait(0.3)
+        end
+        TweenService:Create(banner, TweenInfo.new(0.5), { BackgroundTransparency = 1 }):Play()
+        TweenService:Create(bannerLabel, TweenInfo.new(0.5), { TextTransparency = 1 }):Play()
+        wait(0.6)
+        banner:Destroy()
+    end)
+end
+
+------------------------------------------------------------
+-- SERVER BOOST BANNER
+------------------------------------------------------------
+local function showServerBoostBanner(data)
+    showRewardNotification(
+        data.ActivatedBy .. " ativou " .. data.Name .. "!",
+        Color3.fromRGB(255, 200, 50)
+    )
+end
+
+------------------------------------------------------------
+-- CONNECT V2 REMOTES
+------------------------------------------------------------
+local offlineRewardRemote = remotesFolder:FindFirstChild("OfflineReward")
+if offlineRewardRemote then
+    offlineRewardRemote.OnClientEvent:Connect(function(data)
+        showOfflineReward(data)
+    end)
+end
+
+local meteorWarningRemote = remotesFolder:FindFirstChild("MeteorWarning")
+if meteorWarningRemote then
+    meteorWarningRemote.OnClientEvent:Connect(function(warningType, _)
+        if warningType == "start" then
+            showMeteorWarning()
+        end
+    end)
+end
+
+local serverBoostRemote = remotesFolder:FindFirstChild("ServerBoostUpdate")
+if serverBoostRemote then
+    serverBoostRemote.OnClientEvent:Connect(function(eventType, data)
+        if eventType == "activated" then
+            showServerBoostBanner(data)
+        end
+    end)
+end
+
+local passiveIncomeRemote = remotesFolder:FindFirstChild("PassiveIncomeUpdate")
+if passiveIncomeRemote then
+    passiveIncomeRemote.OnClientEvent:Connect(function(amount)
+        showRewardNotification("+$" .. Utils.FormatNumber(amount) .. " (Renda Passiva)", Color3.fromRGB(150, 255, 150))
+    end)
+end
+
+local sellerVoiceRemote = remotesFolder:FindFirstChild("SellerVoiceLine")
+if sellerVoiceRemote then
+    sellerVoiceRemote.OnClientEvent:Connect(function(voiceLine)
+        showRewardNotification("Vendedor: " .. voiceLine, Color3.fromRGB(255, 200, 100))
+    end)
+end
+
+print("[Client] MainUI v2.0 initialized")
