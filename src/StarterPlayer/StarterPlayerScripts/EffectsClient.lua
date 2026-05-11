@@ -127,8 +127,8 @@ function EffectsClient.KickFlyEffect(data)
 
     EffectsClient.ScreenShake(data.CameraShakeIntensity or 0.5, data.CameraShakeDuration or 0.4)
 
-    spawn(function()
-        wait(flyDuration)
+    task.spawn(function()
+        task.wait(flyDuration)
         trail:Destroy()
         trail0:Destroy()
         trail1:Destroy()
@@ -225,12 +225,12 @@ function EffectsClient.MeteorWarning()
     label.TextStrokeColor3 = Color3.fromRGB(100, 30, 0)
     label.Parent = billboard
 
-    spawn(function()
+    task.spawn(function()
         for i = 1, 6 do
             label.TextTransparency = 0
-            wait(0.4)
+            task.wait(0.4)
             label.TextTransparency = 0.5
-            wait(0.4)
+            task.wait(0.4)
         end
         warningPart:Destroy()
     end)
@@ -267,8 +267,8 @@ function EffectsClient.RebirthExplosion(data)
         ring.CanCollide = false
         ring.Parent = Workspace
 
-        spawn(function()
-            wait(r * 0.1)
+        task.spawn(function()
+            task.wait(r * 0.1)
             TweenService:Create(ring, TweenInfo.new(1, Enum.EasingStyle.Quad), {
                 Size = Vector3.new(0.1, 40 + r * 5, 40 + r * 5),
                 Transparency = 1,
@@ -398,7 +398,7 @@ function EffectsClient.ScreenShake(intensity, duration)
     intensity = intensity or 0.5
     duration = duration or 0.3
 
-    spawn(function()
+    task.spawn(function()
         local startTime = tick()
         while tick() - startTime < duration do
             local elapsed = tick() - startTime

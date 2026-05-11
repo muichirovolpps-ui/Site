@@ -145,6 +145,7 @@ local statDefs = {
     { Key = "Speed",    Icon = "SPD",  Color = Color3.fromRGB(100, 200, 255) },
     { Key = "Luck",     Icon = "LCK",  Color = Color3.fromRGB(100, 255, 150) },
     { Key = "Rebirths", Icon = "RB",   Color = Color3.fromRGB(200, 100, 255) },
+    { Key = "Gems",     Icon = "GEM",  Color = Color3.fromRGB(0, 200, 255) },
 }
 
 for _, stat in ipairs(statDefs) do
@@ -466,12 +467,12 @@ local function buildShopUI()
         })
 
         createLabel({
-            Name = "Duration",
+            Name = "Bonus",
             Size = UDim2.new(0.2, 0, 1, 0),
             Position = UDim2.new(0.5, 0, 0, 0),
-            Text = Utils.FormatTime(boost.Duration),
-            TextColor = Color3.fromRGB(200, 200, 255),
-            Font = Config.UI.FontBody,
+            Text = "+" .. boost.LuckBoost,
+            TextColor = Color3.fromRGB(100, 255, 150),
+            Font = Config.UI.FontAccent,
             Parent = item,
         })
 
@@ -603,19 +604,87 @@ local function buildIndexUI()
 
     createLabel({
         Name = "Total",
-        Size = UDim2.new(1, 0, 0, 30),
-        Text = "Total: 0 / " .. totalBrainrots .. " Brainrots",
+        Size = UDim2.new(1, 0, 0, 35),
+        Text = "COLECAO: " .. totalBrainrots .. " Brainrots | " .. #Config.Mutations .. " Mutacoes",
         Font = Config.UI.FontTitle,
         TextColor = Config.UI.AccentColor,
         Parent = indexScroll,
     })
 
+    -- Mutations section
+    local mutHeader = createFrame({
+        Name = "Header_Mutations",
+        Size = UDim2.new(1, -10, 0, 35),
+        Color = Color3.fromRGB(80, 20, 100),
+        Corner = UDim.new(0, 8),
+        Stroke = Color3.fromRGB(200, 50, 255),
+        Parent = indexScroll,
+    })
+
+    createLabel({
+        Name = "MutTitle",
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = "  MUTACOES POSSIVEIS",
+        Font = Config.UI.FontTitle,
+        TextColor = Color3.fromRGB(255, 150, 255),
+        Parent = mutHeader,
+    })
+
+    for _, mut in ipairs(Config.Mutations) do
+        local mutEntry = createFrame({
+            Name = "Mut_" .. mut.Name,
+            Size = UDim2.new(1, -10, 0, 30),
+            Color = Color3.fromRGB(30, 25, 40),
+            Corner = UDim.new(0, 6),
+            Stroke = mut.Color,
+            Parent = indexScroll,
+        })
+
+        createLabel({
+            Name = "MutName",
+            Size = UDim2.new(0.35, 0, 1, 0),
+            Text = "  " .. mut.Name,
+            TextColor = mut.Color,
+            Font = Config.UI.FontAccent,
+            Parent = mutEntry,
+        })
+
+        createLabel({
+            Name = "MutMultiplier",
+            Size = UDim2.new(0.25, 0, 1, 0),
+            Position = UDim2.new(0.35, 0, 0, 0),
+            Text = mut.ValueMultiplier .. "x valor",
+            TextColor = Color3.fromRGB(255, 215, 0),
+            Font = Config.UI.FontBody,
+            Parent = mutEntry,
+        })
+
+        createLabel({
+            Name = "MutChance",
+            Size = UDim2.new(0.4, 0, 1, 0),
+            Position = UDim2.new(0.6, 0, 0, 0),
+            Text = string.format("%.1f%% chance", mut.Chance * 100),
+            TextColor = Color3.fromRGB(180, 180, 200),
+            Font = Config.UI.FontBody,
+            Parent = mutEntry,
+        })
+    end
+
+    -- Separator
+    createFrame({
+        Name = "Separator",
+        Size = UDim2.new(0.9, 0, 0, 2),
+        Color = Config.UI.AccentColor,
+        Parent = indexScroll,
+    })
+
+    -- Brainrots by rarity
     for _, rarity in ipairs(Config.Rarities) do
         local brainrots = BrainrotDB.GetBrainrotsByRarity(rarity.Name)
 
         local rarityHeader = createFrame({
             Name = "Header_" .. rarity.Name,
-            Size = UDim2.new(1, -10, 0, 35),
+            Size = UDim2.new(1, -10, 0, 40),
             Color = rarity.Color,
             Corner = UDim.new(0, 8),
             Parent = indexScroll,
@@ -623,18 +692,30 @@ local function buildIndexUI()
 
         createLabel({
             Name = "RarityName",
-            Size = UDim2.new(0.6, 0, 1, 0),
+            Size = UDim2.new(0.5, 0, 1, 0),
             Text = "  " .. rarity.DisplayName,
             Font = Config.UI.FontTitle,
+            TextColor = Color3.fromRGB(255, 255, 255),
             Parent = rarityHeader,
         })
 
         createLabel({
             Name = "Count",
-            Size = UDim2.new(0.4, 0, 1, 0),
-            Position = UDim2.new(0.6, 0, 0, 0),
-            Text = "0/" .. #brainrots,
+            Size = UDim2.new(0.25, 0, 1, 0),
+            Position = UDim2.new(0.5, 0, 0, 0),
+            Text = #brainrots .. " brainrots",
             Font = Config.UI.FontAccent,
+            TextColor = Color3.fromRGB(255, 255, 255),
+            Parent = rarityHeader,
+        })
+
+        createLabel({
+            Name = "ReqStr",
+            Size = UDim2.new(0.25, 0, 1, 0),
+            Position = UDim2.new(0.75, 0, 0, 0),
+            Text = "STR " .. Utils.FormatNumber(rarity.RequiredStrength),
+            Font = Config.UI.FontBody,
+            TextColor = Color3.fromRGB(255, 255, 200),
             Parent = rarityHeader,
         })
 
@@ -649,17 +730,17 @@ local function buildIndexUI()
 
             createLabel({
                 Name = "BrainrotName",
-                Size = UDim2.new(0.5, 0, 1, 0),
-                Text = "  ???",
-                Font = Config.UI.FontBody,
-                TextColor = Color3.fromRGB(150, 150, 150),
+                Size = UDim2.new(0.4, 0, 1, 0),
+                Text = "  " .. brainrot.DisplayName,
+                Font = Config.UI.FontAccent,
+                TextColor = rarity.Color,
                 Parent = entry,
             })
 
             createLabel({
                 Name = "Value",
-                Size = UDim2.new(0.25, 0, 1, 0),
-                Position = UDim2.new(0.5, 0, 0, 0),
+                Size = UDim2.new(0.2, 0, 1, 0),
+                Position = UDim2.new(0.4, 0, 0, 0),
                 Text = "$" .. Utils.FormatNumber(brainrot.Value),
                 TextColor = Color3.fromRGB(255, 215, 0),
                 Font = Config.UI.FontBody,
@@ -668,10 +749,20 @@ local function buildIndexUI()
 
             createLabel({
                 Name = "Effect",
-                Size = UDim2.new(0.25, 0, 1, 0),
-                Position = UDim2.new(0.75, 0, 0, 0),
-                Text = brainrot.Effect,
+                Size = UDim2.new(0.2, 0, 1, 0),
+                Position = UDim2.new(0.6, 0, 0, 0),
+                Text = brainrot.Effect or "",
                 TextColor = Color3.fromRGB(150, 200, 255),
+                Font = Config.UI.FontBody,
+                Parent = entry,
+            })
+
+            createLabel({
+                Name = "Rarity",
+                Size = UDim2.new(0.2, 0, 1, 0),
+                Position = UDim2.new(0.8, 0, 0, 0),
+                Text = rarity.DisplayName,
+                TextColor = rarity.Color,
                 Font = Config.UI.FontBody,
                 Parent = entry,
             })
@@ -785,8 +876,8 @@ local function buildSettingsUI()
 
     createLabel({
         Name = "Credits",
-        Size = UDim2.new(1, 0, 0, 60),
-        Text = "Jogo criado com carinho!\n128 Brainrots unicos\n8 Raridades\n4 Mutacoes",
+        Size = UDim2.new(1, 0, 0, 80),
+        Text = "Jogo criado com carinho!\n271 Brainrots unicos\n8 Raridades\n13 Mutacoes\n23 Gamepasses | 5 Bosses | 10 Eventos",
         Font = Config.UI.FontBody,
         TextColor = Color3.fromRGB(180, 180, 200),
         Parent = settingsScroll,
@@ -937,7 +1028,7 @@ _G.ShowNotification = function(message, notifType)
 
     task.delay(3, function()
         Utils.TweenObject(notif, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.3)
-        task.wait(0.4)
+        task.task.wait(0.4)
         notif:Destroy()
     end)
 end
@@ -1002,7 +1093,7 @@ _G.ShowRewardPopup = function(rewardData)
             Size = UDim2.new(0, 0, 0, 0),
             BackgroundTransparency = 1,
         }, 0.3)
-        task.wait(0.4)
+        task.task.wait(0.4)
         popup:Destroy()
     end)
 end
@@ -1064,7 +1155,7 @@ _G.ShowBrainrotObtained = function(brainrotData)
             Size = UDim2.new(0, 0, 0, 0),
             BackgroundTransparency = 1,
         }, 0.4)
-        task.wait(0.5)
+        task.task.wait(0.5)
         popup:Destroy()
     end)
 end
@@ -1111,7 +1202,7 @@ _G.ShowZoneChange = function(rarity)
             Size = UDim2.new(0.6, 0, 0, 0),
             BackgroundTransparency = 1,
         }, 0.3)
-        task.wait(0.4)
+        task.task.wait(0.4)
         banner:Destroy()
     end)
 end
@@ -1168,7 +1259,7 @@ _G.ShowRebirthEffect = function(rebirthData)
     task.delay(4, function()
         Utils.TweenObject(overlay, {BackgroundTransparency = 1}, 0.5)
         Utils.TweenObject(infoFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.3)
-        task.wait(0.6)
+        task.task.wait(0.6)
         overlay:Destroy()
     end)
 end
@@ -1384,11 +1475,11 @@ local function showRewardNotification(text, color)
         Parent = notif,
     })
 
-    spawn(function()
-        wait(3)
+    task.spawn(function()
+        task.wait(3)
         TweenService:Create(notif, TweenInfo.new(0.5), { BackgroundTransparency = 1 }):Play()
         TweenService:Create(notifLabel, TweenInfo.new(0.5), { TextTransparency = 1 }):Play()
-        wait(0.6)
+        task.wait(0.6)
         notif:Destroy()
     end)
 end
@@ -1459,7 +1550,7 @@ local function showOfflineReward(data)
     claimBtn.MouseButton1Click:Connect(function()
         TweenService:Create(overlay, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
         TweenService:Create(popup, TweenInfo.new(0.3), { Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0) }):Play()
-        wait(0.4)
+        task.wait(0.4)
         overlay:Destroy()
     end)
 end
@@ -1487,16 +1578,16 @@ local function showMeteorWarning()
         Parent = banner,
     })
 
-    spawn(function()
+    task.spawn(function()
         for i = 1, 5 do
             bannerLabel.TextTransparency = 0
-            wait(0.3)
+            task.wait(0.3)
             bannerLabel.TextTransparency = 0.4
-            wait(0.3)
+            task.wait(0.3)
         end
         TweenService:Create(banner, TweenInfo.new(0.5), { BackgroundTransparency = 1 }):Play()
         TweenService:Create(bannerLabel, TweenInfo.new(0.5), { TextTransparency = 1 }):Play()
-        wait(0.6)
+        task.wait(0.6)
         banner:Destroy()
     end)
 end
