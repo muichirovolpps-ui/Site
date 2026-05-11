@@ -72,7 +72,7 @@ function GamepassServer.Initialize(cfg, ds, remotesFolder)
 end
 
 function GamepassServer.SetupPlayer(player)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     if not data.Gamepasses then data.Gamepasses = {} end
@@ -103,7 +103,7 @@ function GamepassServer.SetupPlayer(player)
 end
 
 function GamepassServer.OnGamepassPurchased(player, gamepassId)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     for _, gp in ipairs(config.Gamepasses) do
@@ -137,21 +137,27 @@ function GamepassServer.OnGamepassPurchased(player, gamepassId)
     end
 end
 
-function GamepassServer.ApplyGamepassEffect(player, gp)
-    local data = dsManager.GetData(player)
+function GamepassServer.ApplyGamepassEffect(player, gp, isFirstActivation)
+    local data = dsManager:GetData(player)
     if not data then return end
 
-    if gp.Type == "StarterPack" then
-        data.Money = data.Money + 10000
-        data.Strength = data.Strength + 500
-    elseif gp.Type == "UltraPack" then
-        data.Money = data.Money + 100000
-        data.Strength = data.Strength + 5000
-        data.Gems = (data.Gems or 0) + 50
-    elseif gp.Type == "CosmicPack" then
-        data.Money = data.Money + 1000000
-        data.Strength = data.Strength + 50000
-        data.Gems = (data.Gems or 0) + 200
+    if not data.PacksApplied then data.PacksApplied = {} end
+
+    local isPack = (gp.Type == "StarterPack" or gp.Type == "UltraPack" or gp.Type == "CosmicPack")
+    if isPack and not data.PacksApplied[gp.Name] then
+        if gp.Type == "StarterPack" then
+            data.Money = data.Money + 10000
+            data.Strength = data.Strength + 500
+        elseif gp.Type == "UltraPack" then
+            data.Money = data.Money + 100000
+            data.Strength = data.Strength + 5000
+            data.Gems = (data.Gems or 0) + 50
+        elseif gp.Type == "CosmicPack" then
+            data.Money = data.Money + 1000000
+            data.Strength = data.Strength + 50000
+            data.Gems = (data.Gems or 0) + 200
+        end
+        data.PacksApplied[gp.Name] = true
     end
 
     if gp.Type == "Cosmetic" then
@@ -166,7 +172,7 @@ function GamepassServer.ProcessReceipt(receiptInfo)
     local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
     if not player then return Enum.ProductPurchaseDecision.NotProcessedYet end
 
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return Enum.ProductPurchaseDecision.NotProcessedYet end
 
     for _, product in ipairs(config.DeveloperProducts) do

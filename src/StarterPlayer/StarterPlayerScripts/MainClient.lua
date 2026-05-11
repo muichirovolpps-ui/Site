@@ -37,6 +37,7 @@ local stats = {
     Speed = Config.STARTING_SPEED,
     Luck = Config.STARTING_LUCK,
     Rebirths = Config.STARTING_REBIRTHS,
+    Gems = Config.STARTING_GEMS,
 }
 
 remotesFolder:WaitForChild("UpdatePlayerStats").OnClientEvent:Connect(function(newStats)

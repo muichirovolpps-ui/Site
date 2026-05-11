@@ -100,7 +100,7 @@ function EventSystemServer.StartEvent(eventData)
         end)
     elseif eventData.Name == "AlienEvent" then
         for _, player in ipairs(Players:GetPlayers()) do
-            local data = dsManager.GetData(player)
+            local data = dsManager:GetData(player)
             if data then
                 data.Gems = (data.Gems or 0) + (eventData.GemsReward or 10)
             end
@@ -135,7 +135,7 @@ function EventSystemServer.RunMeteorShower(eventData)
             if char then
                 local hrp = char:FindFirstChild("HumanoidRootPart")
                 if hrp and (hrp.Position - impactPos).Magnitude < (config.MeteorEvent.ExplosionRadius or 15) then
-                    local data = dsManager.GetData(player)
+                    local data = dsManager:GetData(player)
                     if data then
                         data.Money = data.Money + (eventData.MoneyBonus or 500)
                         data.Strength = data.Strength + (eventData.StrengthBonus or 100)
@@ -162,7 +162,7 @@ function EventSystemServer.RunGoldenStorm(eventData)
     for i = 1, ticks do
         task.wait(3)
         for _, player in ipairs(Players:GetPlayers()) do
-            local data = dsManager.GetData(player)
+            local data = dsManager:GetData(player)
             if data then
                 local bonus = math.floor(data.Money * 0.01 * (eventData.MoneyMultiplier or 10))
                 data.Money = data.Money + math.max(bonus, 100)

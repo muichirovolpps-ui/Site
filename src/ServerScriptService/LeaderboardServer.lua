@@ -68,7 +68,7 @@ function LeaderboardServer.RefreshAll()
 end
 
 function LeaderboardServer.SavePlayerScores(player)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     local scores = {

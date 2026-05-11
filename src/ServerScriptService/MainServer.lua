@@ -84,7 +84,7 @@ DistanceKickServer.Initialize(Config, dsManager, remotesFolder)
 BrainrotLevelServer.Initialize(Config, dsManager, remotesFolder)
 SellerNPCServer.Initialize(Config, dsManager, remotesFolder)
 VIPServer.Initialize(Config, dsManager, remotesFolder)
-PassiveIncomeServer.Initialize(Config, dsManager, remotesFolder)
+PassiveIncomeServer.Initialize(Config, dsManager, remotesFolder, BrainrotLevelServer)
 print("[MainServer v3] v2 systems initialized")
 
 -- 6. v3 systems
@@ -116,11 +116,11 @@ Players.PlayerAdded:Connect(function(player)
 
     task.wait(1)
 
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if data then
         -- v2 setup
         PassiveIncomeServer.ProcessPlayerJoin(player)
-        VIPServer.SetupPlayer(player)
+        VIPServer.SetupVIPPlayer(player)
 
         -- v3 setup
         GamepassServer.SetupPlayer(player)
@@ -147,7 +147,7 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if data then
         data.LastOnlineTime = os.time()
     end
@@ -173,7 +173,7 @@ task.spawn(function()
     while true do
         task.wait(2)
         for _, player in ipairs(Players:GetPlayers()) do
-            local data = dsManager.GetData(player)
+            local data = dsManager:GetData(player)
             if data then
                 remotesFolder:FindFirstChild("UpdatePlayerStats"):FireClient(player, {
                     Money = data.Money,
@@ -194,7 +194,7 @@ end)
 ------------------------------------------------------------
 game:BindToClose(function()
     for _, player in ipairs(Players:GetPlayers()) do
-        local data = dsManager.GetData(player)
+        local data = dsManager:GetData(player)
         if data then
             data.LastOnlineTime = os.time()
         end
