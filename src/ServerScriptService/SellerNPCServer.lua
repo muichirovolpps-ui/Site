@@ -54,9 +54,9 @@ function SellerNPCServer.Initialize(config, dsManager, remotes)
         return currentDeals, Config.SellerNPC.RefreshInterval - (os.time() - lastRefresh)
     end
 
-    spawn(function()
+    task.spawn(function()
         while true do
-            wait(Config.SellerNPC.RefreshInterval)
+            task.wait(Config.SellerNPC.RefreshInterval)
             SellerNPCServer.RefreshDeals()
         end
     end)

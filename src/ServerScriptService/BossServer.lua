@@ -151,7 +151,7 @@ end
 function BossServer.ProcessAttack(player)
     if not activeBoss then return end
 
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     local damage = math.floor(data.Strength * 0.1)
@@ -187,7 +187,7 @@ function BossServer.DefeatBoss()
         local playerId = tostring(player.UserId)
         local playerDmg = bossDamage[playerId] or 0
         if playerDmg > 0 then
-            local data = dsManager.GetData(player)
+            local data = dsManager:GetData(player)
             if data then
                 local share = playerDmg / math.max(totalDamage, 1)
                 local moneyReward = math.floor(bossConfig.MoneyReward * share)

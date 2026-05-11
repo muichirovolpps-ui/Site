@@ -43,7 +43,7 @@ function EmoteServer.Initialize(cfg, ds, remotesFolder)
 end
 
 function EmoteServer.GetPlayerRank(player)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return 1 end
 
     local rankIndex = 1
@@ -56,7 +56,7 @@ function EmoteServer.GetPlayerRank(player)
 end
 
 function EmoteServer.PlayEmote(player, emoteName)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     if not data.OwnedEmotes then data.OwnedEmotes = {} end
@@ -108,7 +108,7 @@ function EmoteServer.PlayEmote(player, emoteName)
 end
 
 function EmoteServer.BuyEmote(player, emoteName)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     if not data.OwnedEmotes then data.OwnedEmotes = {} end
@@ -142,7 +142,7 @@ function EmoteServer.BuyEmote(player, emoteName)
 end
 
 function EmoteServer.GetPlayerEmotes(player)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return {} end
 
     if not data.OwnedEmotes then data.OwnedEmotes = {} end

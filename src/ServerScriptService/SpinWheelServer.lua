@@ -36,7 +36,7 @@ function SpinWheelServer.Initialize(cfg, ds, remotesFolder)
 end
 
 function SpinWheelServer.ProcessSpin(player, useGems)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     if not data.SpinData then
@@ -131,7 +131,7 @@ function SpinWheelServer.WeightedRandom()
 end
 
 function SpinWheelServer.GetWheelData(player)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return {} end
 
     if not data.SpinData then

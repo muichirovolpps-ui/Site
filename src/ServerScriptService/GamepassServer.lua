@@ -72,7 +72,7 @@ function GamepassServer.Initialize(cfg, ds, remotesFolder)
 end
 
 function GamepassServer.SetupPlayer(player)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     if not data.Gamepasses then data.Gamepasses = {} end
@@ -103,7 +103,7 @@ function GamepassServer.SetupPlayer(player)
 end
 
 function GamepassServer.OnGamepassPurchased(player, gamepassId)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     for _, gp in ipairs(config.Gamepasses) do
@@ -138,7 +138,7 @@ function GamepassServer.OnGamepassPurchased(player, gamepassId)
 end
 
 function GamepassServer.ApplyGamepassEffect(player, gp)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     if gp.Type == "StarterPack" then
@@ -166,7 +166,7 @@ function GamepassServer.ProcessReceipt(receiptInfo)
     local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
     if not player then return Enum.ProductPurchaseDecision.NotProcessedYet end
 
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return Enum.ProductPurchaseDecision.NotProcessedYet end
 
     for _, product in ipairs(config.DeveloperProducts) do

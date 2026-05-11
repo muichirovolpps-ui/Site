@@ -141,18 +141,87 @@ src/
 | Tita de Meteoro | 500,000 | $500,000 | Boss_Meteor_Titan |
 | Lucky Block Corrompido | 1,000,000 | $1,000,000 | Boss_Corrupted_Block |
 
-## Como Importar
+## Como Importar (Direto no Roblox Studio — SEM Rojo)
 
-1. Instale [Rojo](https://rojo.space/) no Roblox Studio
-2. Clone este repositorio
-3. Execute `rojo serve src/default.project.json`
-4. Conecte no Roblox Studio via plugin Rojo
-5. Publique o jogo!
+**Nao precisa de Rojo!** Importe manualmente cada script no local correto:
 
-**Nota:** Os Gamepass IDs e Developer Product IDs devem ser substituidos pelos IDs reais do seu jogo antes de publicar. Os IDs atuais sao placeholders sequenciais.
+### Passo 1: Abra o Roblox Studio
+Crie um novo Baseplate ou abra seu lugar existente.
+
+### Passo 2: Crie os scripts nos servicos corretos
+
+**ServerScriptService** — Crie um **Script** para cada arquivo `.lua`:
+| Arquivo | Nome do Script |
+|---------|---------------|
+| `ServerScriptService/MainServer.lua` | MainServer |
+| `ServerScriptService/DataStoreManager.lua` | DataStoreManager (**ModuleScript**) |
+| `ServerScriptService/LuckyBlockServer.lua` | LuckyBlockServer (**ModuleScript**) |
+| `ServerScriptService/TrainingServer.lua` | TrainingServer (**ModuleScript**) |
+| `ServerScriptService/ShopServer.lua` | ShopServer (**ModuleScript**) |
+| `ServerScriptService/RebirthServer.lua` | RebirthServer (**ModuleScript**) |
+| `ServerScriptService/BaseServer.lua` | BaseServer (**ModuleScript**) |
+| `ServerScriptService/AntiExploit.lua` | AntiExploit (**ModuleScript**) |
+| `ServerScriptService/AdvancedAntiCheat.lua` | AdvancedAntiCheat (**ModuleScript**) |
+| `ServerScriptService/AdminServer.lua` | AdminServer (**ModuleScript**) |
+| `ServerScriptService/MeteorEventServer.lua` | MeteorEventServer (**ModuleScript**) |
+| `ServerScriptService/DistanceKickServer.lua` | DistanceKickServer (**ModuleScript**) |
+| `ServerScriptService/BrainrotLevelServer.lua` | BrainrotLevelServer (**ModuleScript**) |
+| `ServerScriptService/SellerNPCServer.lua` | SellerNPCServer (**ModuleScript**) |
+| `ServerScriptService/PassiveIncomeServer.lua` | PassiveIncomeServer (**ModuleScript**) |
+| `ServerScriptService/VIPServer.lua` | VIPServer (**ModuleScript**) |
+| `ServerScriptService/EventSystemServer.lua` | EventSystemServer (**ModuleScript**) |
+| `ServerScriptService/BossServer.lua` | BossServer (**ModuleScript**) |
+| `ServerScriptService/PetEffectsServer.lua` | PetEffectsServer (**ModuleScript**) |
+| `ServerScriptService/QuestServer.lua` | QuestServer (**ModuleScript**) |
+| `ServerScriptService/SpinWheelServer.lua` | SpinWheelServer (**ModuleScript**) |
+| `ServerScriptService/EmoteServer.lua` | EmoteServer (**ModuleScript**) |
+| `ServerScriptService/RankServer.lua` | RankServer (**ModuleScript**) |
+| `ServerScriptService/LeaderboardServer.lua` | LeaderboardServer (**ModuleScript**) |
+| `ServerScriptService/SecretServer.lua` | SecretServer (**ModuleScript**) |
+| `ServerScriptService/SuperVIPServer.lua` | SuperVIPServer (**ModuleScript**) |
+| `ServerScriptService/GamepassServer.lua` | GamepassServer (**ModuleScript**) |
+
+> **MainServer.lua** e o unico **Script** normal. Todos os outros sao **ModuleScript**.
+
+**ReplicatedStorage** — Crie uma **Folder** chamada `Modules` e dentro dela crie **ModuleScripts**:
+| Arquivo | Nome do ModuleScript |
+|---------|---------------------|
+| `ReplicatedStorage/Modules/Config.lua` | Config |
+| `ReplicatedStorage/Modules/Utils.lua` | Utils |
+| `ReplicatedStorage/Modules/BrainrotDatabase.lua` | BrainrotDatabase |
+| `ReplicatedStorage/Modules/RemoteSetup.lua` | RemoteSetup |
+
+**StarterGui** — Crie **LocalScripts**:
+| Arquivo | Nome do LocalScript |
+|---------|-------------------|
+| `StarterGui/MainUI.lua` | MainUI |
+| `StarterGui/AdminUI.lua` | AdminUI |
+
+**StarterPlayerScripts** (dentro de StarterPlayer) — Crie **LocalScripts**:
+| Arquivo | Nome do LocalScript |
+|---------|-------------------|
+| `StarterPlayer/StarterPlayerScripts/MainClient.lua` | MainClient |
+| `StarterPlayer/StarterPlayerScripts/EffectsClient.lua` | EffectsClient |
+
+**Workspace** — Crie uma **Folder** chamada `Builders` e dentro dela crie **ModuleScripts**:
+| Arquivo | Nome do ModuleScript |
+|---------|---------------------|
+| `Workspace/Builders/LobbyBuilder.lua` | LobbyBuilder |
+| `Workspace/Builders/RarityRoadBuilder.lua` | RarityRoadBuilder |
+| `Workspace/Builders/BaseBuilder.lua` | BaseBuilder |
+| `Workspace/Builders/MegaMapBuilder.lua` | MegaMapBuilder |
+
+### Passo 3: Copie o conteudo
+Para cada arquivo, abra o `.lua` neste repositorio, copie TODO o conteudo e cole dentro do script correspondente no Roblox Studio.
+
+### Passo 4: Configuracao
+1. Habilite DataStore: **Game Settings > Security > Enable Studio Access to API Services**
+2. Substitua os Gamepass IDs em `Config.lua` pelos IDs reais do seu jogo
+3. Substitua os Developer Product IDs pelos IDs reais
+4. Teste o jogo!
 
 ## Requisitos
 
 - Roblox Studio
-- Plugin Rojo (recomendado)
 - DataStore habilitado (Game Settings > Security > Enable Studio Access to API Services)
+- IDs de gamepasses e developer products do seu jogo (substituir em Config.lua)

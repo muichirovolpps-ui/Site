@@ -35,9 +35,9 @@ function PassiveIncomeServer.Initialize(config, dsManager, remotes, brainrotLeve
         offlineRewardRemote.Parent = remotesFolder
     end
 
-    spawn(function()
+    task.spawn(function()
         while true do
-            wait(Config.PassiveIncome.TickInterval)
+            task.wait(Config.PassiveIncome.TickInterval)
             PassiveIncomeServer.TickAllPlayers()
         end
     end)

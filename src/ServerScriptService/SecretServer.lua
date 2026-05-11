@@ -109,7 +109,7 @@ function SecretServer.BuildSecrets()
 end
 
 function SecretServer.ClaimSecret(player, secretName)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     if not data.FoundSecrets then data.FoundSecrets = {} end
@@ -176,7 +176,7 @@ function SecretServer.ClaimSecret(player, secretName)
 end
 
 function SecretServer.UsePortal(player, portalName)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     local portalConfig = nil
@@ -211,7 +211,7 @@ function SecretServer.UsePortal(player, portalName)
 end
 
 function SecretServer.CheckAchievements(player, achieveType, value)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     if not data.Achievements then data.Achievements = {} end
@@ -239,7 +239,7 @@ function SecretServer.CheckAchievements(player, achieveType, value)
 end
 
 function SecretServer.GetPlayerAchievements(player)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return {} end
 
     if not data.Achievements then data.Achievements = {} end

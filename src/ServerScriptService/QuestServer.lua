@@ -36,7 +36,7 @@ function QuestServer.Initialize(cfg, ds, remotesFolder)
 end
 
 function QuestServer.SetupPlayer(player)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     if not data.Quests then
@@ -87,7 +87,7 @@ function QuestServer.GenerateQuests(pool, count)
 end
 
 function QuestServer.UpdateProgress(player, questType, amount)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data or not data.Quests then return end
 
     amount = amount or 1
@@ -122,7 +122,7 @@ function QuestServer.UpdateProgress(player, questType, amount)
 end
 
 function QuestServer.ClaimReward(player, questName, questType)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data or not data.Quests then return end
 
     local questList = questType == "Daily" and data.Quests.Daily or data.Quests.Weekly
@@ -155,7 +155,7 @@ function QuestServer.ClaimReward(player, questName, questType)
 end
 
 function QuestServer.GetPlayerQuests(player)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data or not data.Quests then return { Daily = {}, Weekly = {} } end
     return { Daily = data.Quests.Daily, Weekly = data.Quests.Weekly }
 end

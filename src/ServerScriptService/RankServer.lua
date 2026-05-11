@@ -50,7 +50,7 @@ function RankServer.CalculateRank(strength)
 end
 
 function RankServer.UpdatePlayerRank(player)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     local newRankIndex = RankServer.CalculateRank(data.Strength)
@@ -108,7 +108,7 @@ function RankServer.UpdateOverhead(player, rankConfig)
 end
 
 function RankServer.SetupPlayer(player)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     local rankIndex = RankServer.CalculateRank(data.Strength)
@@ -127,7 +127,7 @@ function RankServer.SetupPlayer(player)
 end
 
 function RankServer.GetPlayerRankData(player)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return {} end
 
     local rankIndex = playerRanks[player.UserId] or 1

@@ -29,7 +29,7 @@ function SuperVIPServer.Initialize(cfg, ds, remotesFolder)
 end
 
 function SuperVIPServer.SetupPlayer(player)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
     local isSuperVIP = false

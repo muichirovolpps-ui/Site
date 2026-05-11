@@ -39,9 +39,9 @@ function MeteorEventServer.Initialize(config, dsManager, remotes)
 
     nextEventTime = os.time() + math.random(Config.MeteorEvent.MinInterval, Config.MeteorEvent.MaxInterval)
 
-    spawn(function()
+    task.spawn(function()
         while true do
-            wait(10)
+            task.wait(10)
             if os.time() >= nextEventTime and not eventActive then
                 MeteorEventServer.StartEvent()
             end
@@ -59,11 +59,11 @@ function MeteorEventServer.StartEvent()
         warningRemote:FireAllClients("start", Config.MeteorEvent.WarningTime)
     end
 
-    wait(Config.MeteorEvent.WarningTime)
+    task.wait(Config.MeteorEvent.WarningTime)
 
     for i = 1, Config.MeteorEvent.MeteorCount do
         MeteorEventServer.SpawnMeteor()
-        wait(Config.MeteorEvent.Duration / Config.MeteorEvent.MeteorCount)
+        task.wait(Config.MeteorEvent.Duration / Config.MeteorEvent.MeteorCount)
     end
 
     eventActive = false
@@ -126,8 +126,8 @@ function MeteorEventServer.SpawnMeteor()
 
     local meteorRemote = remotesFolder:FindFirstChild("MeteorEvent")
 
-    spawn(function()
-        wait(2.5)
+    task.spawn(function()
+        task.wait(2.5)
 
         if meteor and meteor.Parent then
             local impactPos = meteor.Position

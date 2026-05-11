@@ -47,9 +47,9 @@ function VIPServer.Initialize(config, dsManager, remotes)
         return VIPServer.GetActiveBoosts()
     end
 
-    spawn(function()
+    task.spawn(function()
         while true do
-            wait(1)
+            task.wait(1)
             VIPServer.UpdateBoosts()
         end
     end)

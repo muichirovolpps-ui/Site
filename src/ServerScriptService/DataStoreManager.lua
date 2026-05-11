@@ -100,7 +100,7 @@ function DataStoreManager:LoadData(player)
             break
         else
             warn("[DataStore] Load attempt " .. attempt .. " failed for " .. player.Name .. ": " .. tostring(result))
-            if attempt < MAX_RETRIES then wait(1) end
+            if attempt < MAX_RETRIES then task.wait(1) end
         end
     end
 
@@ -131,7 +131,7 @@ function DataStoreManager:SaveData(player)
             return true
         else
             warn("[DataStore] Save attempt " .. attempt .. " failed for " .. player.Name .. ": " .. tostring(err))
-            if attempt < MAX_RETRIES then wait(1) end
+            if attempt < MAX_RETRIES then task.wait(1) end
         end
     end
 
@@ -202,9 +202,9 @@ function DataStoreManager:UpdateLeaderStats(player)
 end
 
 function DataStoreManager:StartAutoSave()
-    spawn(function()
+    task.spawn(function()
         while true do
-            wait(self.SaveInterval)
+            task.wait(self.SaveInterval)
             for _, player in ipairs(Players:GetPlayers()) do
                 self:UpdateLeaderStats(player)
                 self:SaveData(player)

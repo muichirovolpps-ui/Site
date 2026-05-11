@@ -1,152 +1,154 @@
 --[[
-    ShopServer.lua (ServerScriptService)
+    ShopServer.lua  v3.0
     Handles shop purchases: speed upgrades, luck boosts, and gamepass validation.
+    Fixed: uses v3 Initialize(cfg, ds, remotesFolder) signature and direct data mutation.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MarketplaceService = game:GetService("MarketplaceService")
 
-local Config = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Config"))
-
 local ShopServer = {}
 
-function ShopServer.Initialize(remotes, dataStore)
-    local buySpeed = remotes:WaitForChild("BuySpeedUpgrade")
-    local buyLuck = remotes:WaitForChild("BuyLuckBoost")
+local config = nil
+local dsManager = nil
+local remotesFolder = nil
+
+function ShopServer.Initialize(cfg, ds, remotes)
+    config = cfg
+    dsManager = ds
+    remotesFolder = remotes
+
+    local buySpeed = remotesFolder:WaitForChild("BuySpeedUpgrade")
+    local buyLuck = remotesFolder:WaitForChild("BuyLuckBoost")
 
     buySpeed.OnServerEvent:Connect(function(player, upgradeIndex)
-        ShopServer.HandleBuySpeed(player, upgradeIndex, dataStore, remotes)
+        ShopServer.HandleBuySpeed(player, upgradeIndex)
     end)
 
     buyLuck.OnServerEvent:Connect(function(player, boostIndex)
-        ShopServer.HandleBuyLuck(player, boostIndex, dataStore, remotes)
+        ShopServer.HandleBuyLuck(player, boostIndex)
     end)
 
-    local getShopData = remotes:WaitForChild("GetShopData")
+    local getShopData = remotesFolder:WaitForChild("GetShopData")
     getShopData.OnServerInvoke = function(player)
-        return ShopServer.GetShopInfo(player, dataStore)
+        return ShopServer.GetShopInfo(player)
     end
 
     MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, gamePassId, purchased)
         if purchased then
-            ShopServer.HandleGamepassPurchased(player, gamePassId, dataStore, remotes)
+            ShopServer.HandleGamepassPurchased(player, gamePassId)
         end
     end)
 end
 
-function ShopServer.HandleBuySpeed(player, upgradeIndex, dataStore, remotes)
+function ShopServer.HandleBuySpeed(player, upgradeIndex)
     if type(upgradeIndex) ~= "number" then return end
     upgradeIndex = math.floor(upgradeIndex)
 
-    local upgrade = Config.ShopItems.SpeedUpgrades[upgradeIndex]
+    local upgrade = config.ShopItems.SpeedUpgrades[upgradeIndex]
     if not upgrade then return end
 
-    local data = dataStore.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
+    if not data.SpeedUpgradesBought then data.SpeedUpgradesBought = {} end
+
     if data.SpeedUpgradesBought[tostring(upgradeIndex)] then
-        remotes:WaitForChild("ShowNotification"):FireClient(player, "Ja comprado!", "error")
+        remotesFolder:FindFirstChild("ShowNotification"):FireClient(player, "Ja comprado!", "error")
         return
     end
 
-    if data.Money < upgrade.Cost then
-        remotes:WaitForChild("ShowNotification"):FireClient(player, "Dinheiro insuficiente!", "error")
+    if (data.Money or 0) < upgrade.Cost then
+        remotesFolder:FindFirstChild("ShowNotification"):FireClient(player, "Dinheiro insuficiente!", "error")
         return
     end
 
-    dataStore.IncrementValue(player, "Money", -upgrade.Cost)
-    dataStore.IncrementValue(player, "Speed", upgrade.Bonus)
+    data.Money = data.Money - upgrade.Cost
+    data.Speed = (data.Speed or 0) + upgrade.SpeedBoost
     data.SpeedUpgradesBought[tostring(upgradeIndex)] = true
 
-    remotes:WaitForChild("ShowNotification"):FireClient(player, "Comprou " .. upgrade.Name .. "!", "success")
-    remotes:WaitForChild("PurchaseSuccess"):FireClient(player, {
+    remotesFolder:FindFirstChild("ShowNotification"):FireClient(player, "Comprou " .. upgrade.Name .. "!", "success")
+    remotesFolder:FindFirstChild("PurchaseSuccess"):FireClient(player, {
         Type = "SpeedUpgrade",
         Index = upgradeIndex,
         Name = upgrade.Name,
     })
 
-    remotes:WaitForChild("UpdatePlayerStats"):FireClient(player, {
-        Money = dataStore.GetData(player).Money,
-        Speed = dataStore.GetData(player).Speed,
+    remotesFolder:FindFirstChild("UpdatePlayerStats"):FireClient(player, {
+        Money = data.Money,
+        Speed = data.Speed,
     })
 end
 
-function ShopServer.HandleBuyLuck(player, boostIndex, dataStore, remotes)
+function ShopServer.HandleBuyLuck(player, boostIndex)
     if type(boostIndex) ~= "number" then return end
     boostIndex = math.floor(boostIndex)
 
-    local boost = Config.ShopItems.LuckBoosts[boostIndex]
+    local boost = config.ShopItems.LuckBoosts[boostIndex]
     if not boost then return end
 
-    local data = dataStore.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
 
-    if data.Money < boost.Cost then
-        remotes:WaitForChild("ShowNotification"):FireClient(player, "Dinheiro insuficiente!", "error")
+    if (data.Money or 0) < boost.Cost then
+        remotesFolder:FindFirstChild("ShowNotification"):FireClient(player, "Dinheiro insuficiente!", "error")
         return
     end
 
-    dataStore.IncrementValue(player, "Money", -boost.Cost)
+    data.Money = data.Money - boost.Cost
+    data.Luck = (data.Luck or config.STARTING_LUCK) + boost.LuckBoost
 
-    local currentLuck = data.Luck or Config.STARTING_LUCK
-    dataStore.SetValue(player, "Luck", currentLuck + boost.Bonus)
-
+    if not data.LuckBoosts then data.LuckBoosts = {} end
     table.insert(data.LuckBoosts, {
         Index = boostIndex,
-        Bonus = boost.Bonus,
-        ExpiresAt = os.time() + boost.Duration,
+        Bonus = boost.LuckBoost,
+        BoughtAt = os.time(),
     })
 
-    remotes:WaitForChild("ShowNotification"):FireClient(player,
-        boost.Name .. " ativado por " .. math.floor(boost.Duration / 60) .. " minutos!", "success")
+    remotesFolder:FindFirstChild("ShowNotification"):FireClient(player,
+        boost.Name .. " ativado!", "success")
 
-    remotes:WaitForChild("UpdatePlayerStats"):FireClient(player, {
-        Money = dataStore.GetData(player).Money,
-        Luck = dataStore.GetData(player).Luck,
+    remotesFolder:FindFirstChild("UpdatePlayerStats"):FireClient(player, {
+        Money = data.Money,
+        Luck = data.Luck,
     })
-
-    task.delay(boost.Duration, function()
-        if player.Parent then
-            local latestData = dataStore.GetData(player)
-            if latestData then
-                local newLuck = math.max(Config.STARTING_LUCK, (latestData.Luck or Config.STARTING_LUCK) - boost.Bonus)
-                dataStore.SetValue(player, "Luck", newLuck)
-                remotes:WaitForChild("ShowNotification"):FireClient(player, boost.Name .. " expirou!", "warning")
-                remotes:WaitForChild("UpdatePlayerStats"):FireClient(player, {
-                    Luck = newLuck,
-                })
-            end
-        end
-    end)
 end
 
-function ShopServer.HandleGamepassPurchased(player, gamePassId, dataStore, remotes)
-    local data = dataStore.GetData(player)
+function ShopServer.HandleGamepassPurchased(player, gamePassId)
+    local data = dsManager:GetData(player)
     if not data then return end
 
-    for _, gp in ipairs(Config.Gamepasses) do
+    if not data.Gamepasses then data.Gamepasses = {} end
+
+    for _, gp in ipairs(config.Gamepasses) do
         if gp.Id == gamePassId then
-            data.Gamepasses[gp.Name] = true
-            remotes:WaitForChild("ShowNotification"):FireClient(player,
+            local alreadyOwned = false
+            for _, saved in ipairs(data.Gamepasses) do
+                if saved == gp.Name then alreadyOwned = true break end
+            end
+            if not alreadyOwned then
+                table.insert(data.Gamepasses, gp.Name)
+            end
+            remotesFolder:FindFirstChild("ShowNotification"):FireClient(player,
                 "Gamepass " .. gp.Name .. " ativado!", "success")
             break
         end
     end
 end
 
-function ShopServer.GetShopInfo(player, dataStore)
-    local data = dataStore.GetData(player)
+function ShopServer.GetShopInfo(player)
+    local data = dsManager:GetData(player)
     if not data then return {} end
 
     return {
-        SpeedUpgrades = Config.ShopItems.SpeedUpgrades,
-        LuckBoosts = Config.ShopItems.LuckBoosts,
-        Gamepasses = Config.Gamepasses,
-        BoughtSpeedUpgrades = data.SpeedUpgradesBought,
-        ActiveLuckBoosts = data.LuckBoosts,
-        OwnedGamepasses = data.Gamepasses,
-        Weights = Config.Training.Weights,
-        EquippedWeight = data.EquippedWeight,
+        SpeedUpgrades = config.ShopItems.SpeedUpgrades,
+        LuckBoosts = config.ShopItems.LuckBoosts,
+        Gamepasses = config.Gamepasses,
+        BoughtSpeedUpgrades = data.SpeedUpgradesBought or {},
+        ActiveLuckBoosts = data.LuckBoosts or {},
+        OwnedGamepasses = data.Gamepasses or {},
+        Weights = config.Training.Weights,
+        EquippedWeight = data.EquippedWeight or 1,
     }
 end
 

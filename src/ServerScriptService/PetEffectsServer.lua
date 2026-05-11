@@ -49,7 +49,7 @@ function PetEffectsServer.Initialize(cfg, ds, remotesFolder)
 end
 
 function PetEffectsServer.EquipPet(player, inventoryIndex)
-    local data = dsManager.GetData(player)
+    local data = dsManager:GetData(player)
     if not data then return end
     if not data.Inventory[inventoryIndex] then return end
 
