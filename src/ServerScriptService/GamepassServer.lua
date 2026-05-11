@@ -137,21 +137,27 @@ function GamepassServer.OnGamepassPurchased(player, gamepassId)
     end
 end
 
-function GamepassServer.ApplyGamepassEffect(player, gp)
+function GamepassServer.ApplyGamepassEffect(player, gp, isFirstActivation)
     local data = dsManager:GetData(player)
     if not data then return end
 
-    if gp.Type == "StarterPack" then
-        data.Money = data.Money + 10000
-        data.Strength = data.Strength + 500
-    elseif gp.Type == "UltraPack" then
-        data.Money = data.Money + 100000
-        data.Strength = data.Strength + 5000
-        data.Gems = (data.Gems or 0) + 50
-    elseif gp.Type == "CosmicPack" then
-        data.Money = data.Money + 1000000
-        data.Strength = data.Strength + 50000
-        data.Gems = (data.Gems or 0) + 200
+    if not data.PacksApplied then data.PacksApplied = {} end
+
+    local isPack = (gp.Type == "StarterPack" or gp.Type == "UltraPack" or gp.Type == "CosmicPack")
+    if isPack and not data.PacksApplied[gp.Name] then
+        if gp.Type == "StarterPack" then
+            data.Money = data.Money + 10000
+            data.Strength = data.Strength + 500
+        elseif gp.Type == "UltraPack" then
+            data.Money = data.Money + 100000
+            data.Strength = data.Strength + 5000
+            data.Gems = (data.Gems or 0) + 50
+        elseif gp.Type == "CosmicPack" then
+            data.Money = data.Money + 1000000
+            data.Strength = data.Strength + 50000
+            data.Gems = (data.Gems or 0) + 200
+        end
+        data.PacksApplied[gp.Name] = true
     end
 
     if gp.Type == "Cosmetic" then
